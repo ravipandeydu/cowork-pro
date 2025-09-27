@@ -27,6 +27,7 @@ import { FaArrowTrendDown, FaArrowTrendUp } from "react-icons/fa6"
 import { CiCirclePlus } from "react-icons/ci"
 import { useRouter } from "next/navigation"
 import { DataTable, BaseDataItem, DataTableConfig } from "@/components/data-table"
+import { SectionCardData, SectionCards } from "../section-cards"
 
 // Proposal interface extending BaseDataItem
 interface Proposal extends BaseDataItem {
@@ -260,6 +261,29 @@ const proposalsColumns: ColumnDef<Proposal>[] = [
   },
 ]
 
+const proposalsCards: SectionCardData[] = [
+  {
+    id: "total-proposals",
+    title: "Total Proposals",
+    value: "2040",
+    description: "Total Proposals",
+    trend: {
+      value: "-15%",
+      isPositive: false,
+    },
+  },
+  {
+    id: "acceptance-rate",
+    title: "Acceptance Rate",
+    value: "89 %",
+    description: "Acceptance Rate",
+    trend: {
+      value: "+12.5%",
+      isPositive: true,
+    },
+  },
+]
+
 export default function ProposalsContent() {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
@@ -304,40 +328,8 @@ export default function ProposalsContent() {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardContent className="px-4 py-1">
-            <div className="flex justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Total Proposals</p>
-                <div className="text-3xl font-bold">2,040</div>
-              </div>
-              <div>
-                <Badge variant="outline" className="text-xs">
-                  <span className="mr-1"><FaArrowTrendDown /></span>
-                  <span>-20%</span>
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="px-4 py-1">
-            <div className="flex justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Acceptance Rate</p>
-                <div className="text-3xl font-bold">89 %</div>
-              </div>
-              <div>
-                <Badge variant="outline" className="text-xs">
-                  <span className="mr-1"><FaArrowTrendUp /></span>
-                  <span>+12.5%</span>
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div>
+        <SectionCards cards={proposalsCards} className="grid grid-cols-1 md:grid-cols-2 gap-6" />
       </div>
 
       {/* Header with Search and Actions */}
