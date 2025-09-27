@@ -262,6 +262,11 @@ export default function LeadsContent() {
     enableSelection: false,
     enablePagination: true,
     enableColumnVisibility: false,
+    enableSorting: ["name", "email"], // Only allow sorting on name and email columns
+    initialSorting: {
+      columnKey: "name",
+      direction: "asc"
+    },
     enableTabs: true,
     tabs: [
       { value: "leads", label: "Leads" },

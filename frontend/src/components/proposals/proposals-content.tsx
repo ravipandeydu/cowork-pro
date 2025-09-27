@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { ColumnDef } from "@tanstack/react-table"
 import {
   Search,
   Filter,
@@ -22,33 +23,30 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { FaArrowTrendDown, FaArrowTrendUp } from "react-icons/fa6"
 import { CiCirclePlus } from "react-icons/ci"
 import { useRouter } from "next/navigation"
+import { DataTable, BaseDataItem, DataTableConfig } from "@/components/data-table"
 
-// Dummy data for leads
-const leadsData = [
+// Proposal interface extending BaseDataItem
+interface Proposal extends BaseDataItem {
+  id: string
+  name: string
+  company: string
+  email: string
+  phone: string
+  location: string
+  status: "Draft" | "Sent" | "Under Review" | "Approved" | "Rejected" | "Negotiation" | "Accepted"
+  value: string
+  date: string
+  lastContact: string
+  avatar: string
+  proposalNumber: string
+  expiryDate: string
+}
+
+// Dummy data for proposals
+const proposalsData: Proposal[] = [
   {
     id: "1",
     name: "John Smith",
@@ -56,12 +54,14 @@ const leadsData = [
     email: "john@techcorp.com",
     phone: "+1 234-567-8900",
     location: "New York, NY",
-    status: "New",
+    status: "Sent",
     source: "Website",
     value: "$25,000",
     date: "2024-01-15",
     lastContact: "2024-01-14",
-    avatar: "JS"
+    avatar: "JS",
+    proposalNumber: "PROP-001",
+    expiryDate: "2024-02-15"
   },
   {
     id: "2",
@@ -70,12 +70,13 @@ const leadsData = [
     email: "sarah@startupxyz.com",
     phone: "+1 234-567-8901",
     location: "San Francisco, CA",
-    status: "Qualified",
-    source: "Referral",
+    status: "Under Review",
     value: "$15,000",
     date: "2024-01-14",
     lastContact: "2024-01-13",
-    avatar: "SJ"
+    avatar: "SJ",
+    proposalNumber: "PROP-002",
+    expiryDate: "2024-02-14"
   },
   {
     id: "3",
@@ -84,12 +85,13 @@ const leadsData = [
     email: "mike@globalinc.com",
     phone: "+1 234-567-8902",
     location: "Chicago, IL",
-    status: "Contacted",
-    source: "LinkedIn",
+    status: "Approved",
     value: "$45,000",
     date: "2024-01-13",
     lastContact: "2024-01-12",
-    avatar: "MW"
+    avatar: "MW",
+    proposalNumber: "PROP-003",
+    expiryDate: "2024-02-13"
   },
   {
     id: "4",
@@ -98,12 +100,13 @@ const leadsData = [
     email: "emily@innovationlabs.com",
     phone: "+1 234-567-8903",
     location: "Austin, TX",
-    status: "Proposal Sent",
-    source: "Cold Email",
+    status: "Sent",
     value: "$30,000",
     date: "2024-01-12",
     lastContact: "2024-01-11",
-    avatar: "ED"
+    avatar: "ED",
+    proposalNumber: "PROP-004",
+    expiryDate: "2024-02-12"
   },
   {
     id: "5",
@@ -113,11 +116,12 @@ const leadsData = [
     phone: "+1 234-567-8904",
     location: "Seattle, WA",
     status: "Negotiation",
-    source: "Trade Show",
     value: "$20,000",
     date: "2024-01-11",
     lastContact: "2024-01-10",
-    avatar: "DB"
+    avatar: "DB",
+    proposalNumber: "PROP-005",
+    expiryDate: "2024-02-11"
   },
   {
     id: "6",
@@ -126,12 +130,13 @@ const leadsData = [
     email: "lisa@digitalsolutions.com",
     phone: "+1 234-567-8905",
     location: "Miami, FL",
-    status: "Won",
-    source: "Website",
+    status: "Accepted",
     value: "$35,000",
     date: "2024-01-10",
     lastContact: "2024-01-09",
-    avatar: "LA"
+    avatar: "LA",
+    proposalNumber: "PROP-006",
+    expiryDate: "2024-02-10"
   },
   {
     id: "7",
@@ -140,12 +145,13 @@ const leadsData = [
     email: "robert@enterpriseco.com",
     phone: "+1 234-567-8906",
     location: "Boston, MA",
-    status: "Lost",
-    source: "Referral",
+    status: "Rejected",
     value: "$50,000",
     date: "2024-01-09",
     lastContact: "2024-01-08",
-    avatar: "RT"
+    avatar: "RT",
+    proposalNumber: "PROP-007",
+    expiryDate: "2024-02-09"
   },
   {
     id: "8",
@@ -154,51 +160,146 @@ const leadsData = [
     email: "jennifer@smarttech.com",
     phone: "+1 234-567-8907",
     location: "Denver, CO",
-    status: "New",
-    source: "Social Media",
+    status: "Draft",
     value: "$18,000",
     date: "2024-01-08",
     lastContact: "2024-01-07",
-    avatar: "JW"
+    avatar: "JW",
+    proposalNumber: "PROP-008",
+    expiryDate: "2024-02-08"
   }
 ]
 
-const getStatusColor = (status: string) => {
+function getStatusColor(status: string) {
   switch (status) {
-    case 'New':
+    case 'Draft':
+      return 'bg-gray-100 text-gray-800'
+    case 'Sent':
       return 'bg-blue-100 text-blue-800'
-    case 'Qualified':
-      return 'bg-green-100 text-green-800'
-    case 'Contacted':
+    case 'Under Review':
       return 'bg-yellow-100 text-yellow-800'
-    case 'Proposal Sent':
-      return 'bg-purple-100 text-purple-800'
+    case 'Approved':
+      return 'bg-green-100 text-green-800'
+    case 'Rejected':
+      return 'bg-red-100 text-red-800'
     case 'Negotiation':
       return 'bg-orange-100 text-orange-800'
-    case 'Won':
+    case 'Accepted':
       return 'bg-emerald-100 text-emerald-800'
-    case 'Lost':
-      return 'bg-red-100 text-red-800'
     default:
       return 'bg-gray-100 text-gray-800'
   }
 }
 
-export default function LeadsContent() {
+// Column definitions for proposals table
+const proposalsColumns: ColumnDef<Proposal>[] = [
+  {
+    accessorKey: "avatar",
+    header: "",
+    cell: ({ row }) => (
+      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+        <span className="text-sm font-medium text-white">{row.original.avatar}</span>
+      </div>
+    ),
+    enableSorting: false,
+    size: 50,
+  },
+  {
+    accessorKey: "name",
+    header: "Customer",
+    cell: ({ row }) => (
+      <div>
+        <div className="font-medium">{row.original.name}</div>
+        <div className="text-sm text-muted-foreground">{row.original.company}</div>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "email",
+    header: "Contact",
+    cell: ({ row }) => (
+      <div className="space-y-1">
+        <div className="flex items-center gap-2 text-sm">
+          <Mail className="h-3 w-3 text-muted-foreground" />
+          {row.original.email}
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <Phone className="h-3 w-3 text-muted-foreground" />
+          {row.original.phone}
+        </div>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "date",
+    header: "Date",
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2">
+        <Calendar className="h-4 w-4 text-muted-foreground" />
+        {row.original.date}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => (
+      <Badge className={`${getStatusColor(row.original.status)} w-24 justify-center`}>
+        {row.original.status}
+      </Badge>
+    ),
+  },
+  {
+    accessorKey: "action",
+    header: "",
+    cell: ({ row }) => (
+      <Button className={`${getStatusColor(row.original.status)} w-26 justify-center`}>
+        {row.original.status}
+      </Button>
+    ),
+  },
+]
+
+export default function ProposalsContent() {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [sourceFilter, setSourceFilter] = useState("all")
 
-  const filteredLeads = leadsData.filter(lead => {
-    const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || lead.status === statusFilter
-    const matchesSource = sourceFilter === "all" || lead.source === sourceFilter
+  const filteredProposals = proposalsData.filter(proposal => {
+    const matchesSearch = proposal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      proposal.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      proposal.email.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = statusFilter === "all" || proposal.status === statusFilter
+    const matchesSource = sourceFilter === "all" || proposal.source === sourceFilter
 
     return matchesSearch && matchesStatus && matchesSource
   })
+
+  // Configuration for proposals table
+  const proposalsConfig: DataTableConfig<Proposal> = {
+    enableDragAndDrop: false,
+    enableSelection: false,
+    enablePagination: true,
+    enableColumnVisibility: false,
+    enableTabs: true,
+    tabs: [
+      { value: "leads", label: "Leads" },
+      { value: "proposals", label: "Proposals" },
+    ],
+    enableSorting: ["date", "status"], // Only allow sorting on name and email columns
+    // actions: [
+    //   {
+    //     label: "View Details",
+    //     onClick: (proposal) => console.log("View proposal:", proposal),
+    //   }
+    // ],
+    actionsAsButtons: true,
+    addButtonLabel: "Create Proposal",
+    customColumnsLabel: "Customize Proposal Columns",
+    emptyStateMessage: "No proposals found.",
+    pageSize: 10,
+  }
 
   return (
     <div className="space-y-6">
@@ -239,117 +340,36 @@ export default function LeadsContent() {
         </Card>
       </div>
 
-      {/* Filters and Actions */}
-      <div className="flex flex-col gap-6">
-        {/* Navigation Tabs */}
-        <div className="flex items-center justify-between">
-          <div className="text-lg font-bold">Proposals</div>
-
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search customer/company here..."
-                className="pl-10 w-80"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            <Button className="bg-black hover:bg-gray-800 text-white">
-              <CiCirclePlus className="h-4 w-4 mr-2" />
-              Create Proposal
-            </Button>
+      {/* Header with Search and Actions */}
+      <div className="flex items-center justify-between">
+        <div className="text-lg font-bold">Proposals</div>
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search customer/company here..."
+              className="pl-10 w-80"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-        </div>
-        <div className="w-full">
-          <Tabs defaultValue="proposals">
-            <TabsList>
-              <TabsTrigger 
-                value="leads" 
-                onClick={() => router.push('/leads')}
-              >
-                Leads
-              </TabsTrigger>
-              <TabsTrigger value="proposals">Proposals</TabsTrigger>
-            </TabsList>
-            <TabsContent value="leads">
-              {/* Leads Table */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Password</CardTitle>
-
-                </CardHeader>
-              </Card>
-            </TabsContent>
-            <TabsContent value="proposals">
-
-              <Card className="p-0">
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-12"></TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Contact</TableHead>
-                        <TableHead>Location</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredLeads.map((lead) => (
-                        <TableRow key={lead.id}>
-                          <TableCell>
-                            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                              <span className="text-sm font-medium text-white">{lead.avatar}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{lead.name}</div>
-                              <div className="text-sm text-muted-foreground">{lead.company}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2 text-sm">
-                                <Mail className="h-3 w-3 text-muted-foreground" />
-                                {lead.email}
-                              </div>
-                              <div className="flex items-center gap-2 text-sm">
-                                <Phone className="h-3 w-3 text-muted-foreground" />
-                                {lead.phone}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <MapPin className="h-4 w-4 text-muted-foreground" />
-                              {lead.location}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-muted-foreground" />
-                              {lead.date}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Button variant="outline" size="sm">
-                              Action
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+          <Button className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Create Proposal
+          </Button>
         </div>
       </div>
+
+      {/* Dynamic Data Table */}
+      <DataTable
+        data={filteredProposals}
+        columns={proposalsColumns}
+        config={proposalsConfig}
+        onDataChange={(updatedData) => {
+          console.log("Proposals data updated:", updatedData)
+          // Handle data updates here
+        }}
+      />
     </div>
   )
 }

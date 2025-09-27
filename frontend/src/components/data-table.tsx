@@ -29,6 +29,8 @@ import {
     IconGripVertical,
     IconLayoutColumns,
     IconPlus,
+    IconArrowUp,
+    IconArrowDown,
 } from "@tabler/icons-react"
 import {
     ColumnDef,
@@ -117,6 +119,11 @@ export interface DataTableConfig<T extends BaseDataItem> {
     enableSelection?: boolean
     enablePagination?: boolean
     enableColumnVisibility?: boolean
+    enableSorting?: boolean | string[] // Can be boolean for all columns or array of column keys for specific columns
+    initialSorting?: {
+        columnKey: string
+        direction: 'asc' | 'desc'
+    }
     enableTabs?: boolean
     tabs?: TabConfig[]
     defaultTab?: string
@@ -321,13 +328,22 @@ export function DataTable<T extends BaseDataItem>({
         emptyStateMessage = "No results.",
         pageSize = 10,
         pageSizeOptions = [10, 20, 30, 40, 50],
+        initialSorting,
     } = config
 
     const [data, setData] = React.useState(() => initialData)
     const [rowSelection, setRowSelection] = React.useState({})
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-    const [sorting, setSorting] = React.useState<SortingState>([])
+    const [sorting, setSorting] = React.useState<SortingState>(() => {
+        if (initialSorting) {
+            return [{
+                id: initialSorting.columnKey,
+                desc: initialSorting.direction === 'desc'
+            }]
+        }
+        return []
+    })
     const [pagination, setPagination] = React.useState({
         pageIndex: 0,
         pageSize,
@@ -428,12 +444,10 @@ export function DataTable<T extends BaseDataItem>({
                                 <TableRow key={headerGroup.id}>
                                     {headerGroup.headers.map((header) => (
                                         <TableHead key={header.id} colSpan={header.colSpan}>
-                                            {header.isPlaceholder
-                                                ? null
-                                                : flexRender(
-                                                    header.column.columnDef.header,
-                                                    header.getContext()
-                                                )}
+                                            <SortableHeader 
+                                                header={header} 
+                                                enableSorting={config.enableSorting || false} 
+                                            />
                                         </TableHead>
                                     ))}
                                 </TableRow>
@@ -473,12 +487,10 @@ export function DataTable<T extends BaseDataItem>({
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => (
                                     <TableHead key={header.id} colSpan={header.colSpan}>
-                                        {header.isPlaceholder
-                                            ? null
-                                            : flexRender(
-                                                header.column.columnDef.header,
-                                                header.getContext()
-                                            )}
+                                        <SortableHeader 
+                                            header={header} 
+                                            enableSorting={config.enableSorting || false} 
+                                        />
                                     </TableHead>
                                 ))}
                             </TableRow>
@@ -750,3 +762,59 @@ export function DataTable<T extends BaseDataItem>({
         </div>
     )
 }
+
+// SortableHeader component for handling column sorting UI
+interface SortableHeaderProps {
+    header: any;
+    enableSorting: boolean | string[];
+}
+
+const SortableHeader: React.FC<SortableHeaderProps> = ({ header, enableSorting }) => {
+    // Determine if this specific column can be sorted
+    const columnId = header.column.id;
+    const canSort = (() => {
+        if (typeof enableSorting === 'boolean') {
+            return enableSorting && header.column.getCanSort();
+        }
+        // If enableSorting is an array, check if this column is included
+        return Array.isArray(enableSorting) && enableSorting.includes(columnId) && header.column.getCanSort();
+    })();
+    
+    const sortDirection = header.column.getIsSorted();
+
+    const handleSort = () => {
+        if (canSort) {
+            header.column.toggleSorting();
+        }
+    };
+
+    return (
+        <div 
+            className={`flex items-center gap-2 ${canSort ? 'cursor-pointer select-none' : ''}`}
+            onClick={handleSort}
+        >
+            <span>
+                {header.isPlaceholder
+                    ? null
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                    )}
+            </span>
+            {canSort && (
+                <div className="flex flex-col">
+                    {sortDirection === 'asc' ? (
+                        <IconArrowUp size={16} className="text-primary" />
+                    ) : sortDirection === 'desc' ? (
+                        <IconArrowDown size={16} className="text-primary" />
+                    ) : (
+                        <div className="flex flex-col opacity-50">
+                            <IconArrowUp size={12} className="mb-[-2px]" />
+                            <IconArrowDown size={12} />
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
