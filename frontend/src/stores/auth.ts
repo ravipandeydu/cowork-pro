@@ -14,7 +14,7 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  isHydrated: boolean; // Track if the store has been hydrated from localStorage
+  isHydrated: boolean; // Track if the store has been hydrated from localStorag
   error: string | null;
 
   // Actions
