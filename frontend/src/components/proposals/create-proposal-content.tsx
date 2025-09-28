@@ -14,8 +14,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Stepper, Step } from "@/components/ui/stepper"
 import { Badge } from "@/components/ui/badge"
+import { useLeads } from "@/hooks/useLeads"
+import { Lead } from "@/services/leads"
+import { useCenters } from "@/hooks/useCenters"
+import { Center } from "@/services/centers"
 
-// Hub Centre interface for selection
+// Hub Centre interface for selection (mapped from Center)
 interface HubCentre {
   id: string
   name: string
@@ -42,106 +46,22 @@ const offerDetailsSchema = z.object({
 
 type OfferDetailsFormData = z.infer<typeof offerDetailsSchema>
 
-// Mock hub centres data
-const mockHubCentres: HubCentre[] = [
-  {
-    id: "1",
-    name: "Godrej W2GHI",
-    address: "Mg Road, Imperia",
-    location: "Chandigarh",
-    image: "/api/placeholder/300/200"
-  },
-  {
-    id: "2",
-    name: "Elante Mall",
-    address: "Industrial Area Phase I",
-    location: "Chandigarh",
-    image: "/api/placeholder/300/200"
-  },
-  {
-    id: "3",
-    name: "Pune",
-    address: "Baner Road, Pune",
-    location: "Maharashtra",
-    image: "/api/placeholder/300/200"
-  },
-  {
-    id: "4",
-    name: "BPTP",
-    address: "Sector 37D, Gurgaon",
-    location: "Gurugram",
-    image: "/api/placeholder/300/200"
-  }
-]
 
-// Customer interface for selection
+
+// Customer interface for selection (mapped from Lead)
 interface Customer {
   id: string
   name: string
   email: string
   phone: string
   company: string
-  location: string
+  location?: string
   avatar: string
+  businessType?: string
+  status?: string
 }
 
-// Mock customer data (in a real app, this would come from an API)
-const mockCustomers: Customer[] = [
-  {
-    id: "1",
-    name: "Neha Kapoor",
-    email: "neha.kapoor@gmail.com",
-    phone: "+1 (555) 123-4567",
-    company: "WorkNest Spaces",
-    location: "New York, NY",
-    avatar: "NK"
-  },
-  {
-    id: "2",
-    name: "Ananya Iyer",
-    email: "ananya.iyer@gmail.com",
-    phone: "+1 (555) 987-6543",
-    company: "CollabSquare",
-    location: "Los Angeles, CA",
-    avatar: "AI"
-  },
-  {
-    id: "3",
-    name: "Daniel Cohen",
-    email: "daniel.cohen@gmail.com",
-    phone: "+1 (555) 456-7890",
-    company: "WorkNest Spaces",
-    location: "Chicago, IL",
-    avatar: "DC"
-  },
-  {
-    id: "4",
-    name: "Rohani Desai",
-    email: "rohani.desai@gmail.com",
-    phone: "+1 (555) 321-0987",
-    company: "CollabSquare",
-    location: "San Francisco, CA",
-    avatar: "RD"
-  },
-  {
-    id: "5",
-    name: "Ananya Iyer",
-    email: "ananya.iyer@gmail.com",
-    phone: "+1 (555) 654-3210",
-    company: "WorkNest Spaces",
-    location: "Miami, FL",
-    avatar: "AI"
-  },
-  {
-    id: "6",
-    name: "Ayush Gupta",
-    email: "ayush.gupta09@gmail.com",
-    phone: "+1 (555) 789-0123",
-    company: "WorkNest Spaces",
-    location: "Austin, TX",
-    avatar: "AG"
-  }
-]
+// Remove the mock customers array as we're now using real lead data
 
 interface ProposalFormData {
   // Selected Customer
@@ -240,6 +160,34 @@ export default function CreateProposalContent() {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [showPdfViewer, setShowPdfViewer] = useState(false)
 
+  // Fetch leads data
+  const { data: leadsData, isLoading: leadsLoading, error: leadsError } = useLeads()
+
+  // Fetch centers data
+  const { data: centersData, isLoading: centersLoading, error: centersError } = useCenters()
+
+  // Transform leads to customer format
+  const customers: Customer[] = leadsData?.data ? leadsData.data.leads.map((lead: Lead) => ({
+    id: lead._id,
+    name: lead.name,
+    email: lead.email,
+    phone: lead.phone,
+    company: lead.company,
+    location: `${lead.businessType} - ${lead.businessSize}`, // Use business info as location
+    avatar: lead.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
+    businessType: lead.businessType,
+    status: lead.status
+  })) : []
+
+  // Transform centers to hub centre format
+  const hubCentres: HubCentre[] = centersData?.data ? centersData.data.centers.map((center: Center) => ({
+    id: center._id,
+    name: center.name,
+    address: `${center.address.street}, ${center.address.city}`,
+    location: `${center.address.city}, ${center.address.state}`,
+    image: center.images && center.images.length > 0 ? center.images[0] : "/api/placeholder/300/200"
+  })) : []
+
   // React Hook Form for offer details (step 3)
   const offerForm = useForm<OfferDetailsFormData>({
     resolver: zodResolver(offerDetailsSchema),
@@ -260,7 +208,7 @@ export default function CreateProposalContent() {
   })
 
   // Filter customers based on search term
-  const filteredCustomers = mockCustomers.filter(customer =>
+  const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
     customer.email.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
     customer.company.toLowerCase().includes(customerSearchTerm.toLowerCase())
@@ -606,7 +554,7 @@ export default function CreateProposalContent() {
 
               {/* Hub Centres Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {mockHubCentres.map((hubCentre) => {
+                {hubCentres.map((hubCentre) => {
                   const isSelected = formData.selectedHubCentres.some(centre => centre.id === hubCentre.id)
                   return (
                     <Card

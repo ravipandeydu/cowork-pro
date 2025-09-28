@@ -29,86 +29,74 @@ import {
   LineChart,
   Line
 } from "recharts"
-
-// Dummy data for charts
-const barChartData = [
-  { name: "Jan", value: 400, leads: 240 },
-  { name: "Feb", value: 300, leads: 139 },
-  { name: "Mar", value: 200, leads: 980 },
-  { name: "Apr", value: 278, leads: 390 },
-  { name: "May", value: 189, leads: 480 },
-  { name: "Jun", value: 239, leads: 380 },
-]
-
-const lineChartData = [
-  { name: "Week 1", proposals: 65, conversions: 28 },
-  { name: "Week 2", proposals: 59, conversions: 48 },
-  { name: "Week 3", proposals: 80, conversions: 40 },
-  { name: "Week 4", proposals: 81, conversions: 19 },
-  { name: "Week 5", proposals: 56, conversions: 96 },
-  { name: "Week 6", proposals: 55, conversions: 27 },
-]
-
-// Dummy data for table
-const tableData = [
-  {
-    id: "1",
-    company: "Tech Corp",
-    contact: "John Smith",
-    email: "john@techcorp.com",
-    phone: "+1 234-567-8900",
-    location: "New York",
-    status: "Active",
-    value: "$25,000",
-    date: "2024-01-15"
-  },
-  {
-    id: "2",
-    company: "StartupXYZ",
-    contact: "Sarah Johnson",
-    email: "sarah@startupxyz.com",
-    phone: "+1 234-567-8901",
-    location: "San Francisco",
-    status: "Pending",
-    value: "$15,000",
-    date: "2024-01-14"
-  },
-  {
-    id: "3",
-    company: "Global Inc",
-    contact: "Mike Wilson",
-    email: "mike@globalinc.com",
-    phone: "+1 234-567-8902",
-    location: "Chicago",
-    status: "Closed",
-    value: "$45,000",
-    date: "2024-01-13"
-  },
-  {
-    id: "4",
-    company: "Innovation Labs",
-    contact: "Emily Davis",
-    email: "emily@innovationlabs.com",
-    phone: "+1 234-567-8903",
-    location: "Austin",
-    status: "Active",
-    value: "$30,000",
-    date: "2024-01-12"
-  },
-  {
-    id: "5",
-    company: "Future Systems",
-    contact: "David Brown",
-    email: "david@futuresystems.com",
-    phone: "+1 234-567-8904",
-    location: "Seattle",
-    status: "Pending",
-    value: "$20,000",
-    date: "2024-01-11"
-  }
-]
+import { useLeads, useLeadStats } from "@/hooks/useLeads"
+import { useProposals, useProposalStats } from "@/hooks/useProposals"
+import { useCenters } from "@/hooks/useCenters"
+import { useMemo } from "react"
 
 export default function DashboardContent() {
+  // Fetch real data from APIs
+  const { data: leadsData, isLoading: leadsLoading } = useLeads()
+  const { data: leadStats, isLoading: leadStatsLoading } = useLeadStats()
+  const { data: proposalsData, isLoading: proposalsLoading } = useProposals()
+  const { data: proposalStats, isLoading: proposalStatsLoading } = useProposalStats()
+  const { data: centersData, isLoading: centersLoading } = useCenters()
+
+  // Calculate stats from real data
+  const stats = useMemo(() => {
+    const totalLeads = Array.isArray(leadsData?.data) ? leadsData.data.length : 0
+    const totalProposals = Array.isArray(proposalsData?.data) ? proposalsData.data.length : 0
+    const activeProposals = Array.isArray(proposalsData?.data) 
+      ? proposalsData.data.filter(p => p.status === 'sent' || p.status === 'viewed').length 
+      : 0
+    
+    // Calculate conversion rate (proposals / leads * 100)
+    const conversionRate = totalLeads > 0 ? ((totalProposals / totalLeads) * 100).toFixed(1) : '0'
+    
+    // Calculate total revenue from approved proposals
+    const totalRevenue = Array.isArray(proposalsData?.data)
+      ? proposalsData.data.reduce((sum, proposal) => {
+          if (proposal.status === 'approved') {
+            return sum + (proposal.pricing?.totalAmount || 0)
+          }
+          return sum
+        }, 0)
+      : 0
+
+    return {
+      totalLeads,
+      totalRevenue,
+      conversionRate,
+      activeProposals
+    }
+  }, [leadsData, proposalsData])
+
+  // Generate chart data from real data
+  const chartData = useMemo(() => {
+    // For now, we'll use dummy data for charts since we need historical data
+    // In a real app, you'd have endpoints for analytics data
+    const barChartData = [
+      { name: "Jan", value: 400, leads: 240 },
+      { name: "Feb", value: 300, leads: 139 },
+      { name: "Mar", value: 200, leads: 980 },
+      { name: "Apr", value: 278, leads: 390 },
+      { name: "May", value: 189, leads: 480 },
+      { name: "Jun", value: 239, leads: 380 },
+    ]
+
+    const lineChartData = [
+      { name: "Week 1", proposals: 65, conversions: 28 },
+      { name: "Week 2", proposals: 59, conversions: 48 },
+      { name: "Week 3", proposals: 80, conversions: 40 },
+      { name: "Week 4", proposals: 81, conversions: 19 },
+      { name: "Week 5", proposals: 56, conversions: 96 },
+      { name: "Week 6", proposals: 55, conversions: 27 },
+    ]
+
+    return { barChartData, lineChartData }
+  }, [])
+
+  const isLoading = leadsLoading || proposalsLoading || leadStatsLoading || proposalStatsLoading
   return (
     <>
       {/* Stats Cards */}
@@ -119,9 +107,11 @@ export default function DashboardContent() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,234</div>
+            <div className="text-2xl font-bold">
+              {isLoading ? "..." : stats.totalLeads.toLocaleString()}
+            </div>
             <p className="text-xs text-muted-foreground">
-              +12% from last month
+              Total leads in system
             </p>
           </CardContent>
         </Card>
@@ -132,9 +122,11 @@ export default function DashboardContent() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$45,231</div>
+            <div className="text-2xl font-bold">
+              {isLoading ? "..." : `$${stats.totalRevenue.toLocaleString()}`}
+            </div>
             <p className="text-xs text-muted-foreground">
-              +8% from last month
+              From approved proposals
             </p>
           </CardContent>
         </Card>
@@ -145,9 +137,11 @@ export default function DashboardContent() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">23.5%</div>
+            <div className="text-2xl font-bold">
+              {isLoading ? "..." : `${stats.conversionRate}%`}
+            </div>
             <p className="text-xs text-muted-foreground">
-              +3% from last month
+              Proposals per lead
             </p>
           </CardContent>
         </Card>
@@ -158,9 +152,11 @@ export default function DashboardContent() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">89</div>
+            <div className="text-2xl font-bold">
+              {isLoading ? "..." : stats.activeProposals}
+            </div>
             <p className="text-xs text-muted-foreground">
-              +5% from last month
+              Sent or viewed proposals
             </p>
           </CardContent>
         </Card>
@@ -175,15 +171,15 @@ export default function DashboardContent() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={barChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#3b82f6" />
-                <Bar dataKey="leads" fill="#10b981" />
-              </BarChart>
-            </ResponsiveContainer>
+            <BarChart data={chartData.barChartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="value" fill="#3b82f6" />
+              <Bar dataKey="leads" fill="#10b981" />
+            </BarChart>
+          </ResponsiveContainer>
           </CardContent>
         </Card>
 
@@ -194,15 +190,15 @@ export default function DashboardContent() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={lineChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="proposals" stroke="#3b82f6" strokeWidth={2} />
-                <Line type="monotone" dataKey="conversions" stroke="#10b981" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
+            <LineChart data={chartData.lineChartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="proposals" stroke="#3b82f6" strokeWidth={2} />
+              <Line type="monotone" dataKey="conversions" stroke="#10b981" strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
@@ -213,50 +209,58 @@ export default function DashboardContent() {
           <CardTitle>Recent Leads</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Company</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Value</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tableData.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell className="font-medium">{row.company}</TableCell>
-                  <TableCell>{row.contact}</TableCell>
-                  <TableCell>{row.email}</TableCell>
-                  <TableCell>{row.phone}</TableCell>
-                  <TableCell>{row.location}</TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={
-                        row.status === 'Active' ? 'default' : 
-                        row.status === 'Pending' ? 'secondary' : 
-                        'outline'
-                      }
-                    >
-                      {row.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{row.value}</TableCell>
-                  <TableCell>{row.date}</TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
-                  </TableCell>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="text-muted-foreground">Loading leads...</div>
+            </div>
+          ) : leadsData?.data && leadsData.data.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Business Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {leadsData.data.slice(0, 5).map((lead) => (
+                  <TableRow key={lead._id}>
+                    <TableCell className="font-medium">{lead.company}</TableCell>
+                    <TableCell>{lead.name}</TableCell>
+                    <TableCell>{lead.email}</TableCell>
+                    <TableCell>{lead.phone}</TableCell>
+                    <TableCell>{lead.businessType}</TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant={
+                          lead.status === 'converted' ? 'default' : 
+                          lead.status === 'contacted' ? 'secondary' : 
+                          'outline'
+                        }
+                      >
+                        {lead.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{new Date(lead.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="icon">
+                        <MoreHorizontal className="w-4 h-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="flex items-center justify-center h-32">
+              <div className="text-muted-foreground">No leads found</div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </>

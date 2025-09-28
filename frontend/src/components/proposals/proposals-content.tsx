@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { ColumnDef } from "@tanstack/react-table"
 import {
   Search,
@@ -23,169 +23,36 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FaArrowTrendDown, FaArrowTrendUp } from "react-icons/fa6"
 import { CiCirclePlus } from "react-icons/ci"
 import { useRouter } from "next/navigation"
 import { DataTable, BaseDataItem, DataTableConfig } from "@/components/data-table"
 import { SectionCardData, SectionCards } from "../section-cards"
+import { useProposals, useProposalStats } from "@/hooks/useProposals"
+import { Proposal } from "@/services/proposals"
 
-// Proposal interface extending BaseDataItem
-interface Proposal extends BaseDataItem {
+// Proposal interface extending BaseDataItem for DataTable compatibility
+interface ProposalTableItem extends Proposal, BaseDataItem {
   id: string
-  name: string
-  company: string
-  email: string
-  phone: string
-  location: string
-  status: "Draft" | "Sent" | "Under Review" | "Approved" | "Rejected" | "Negotiation" | "Accepted"
-  value: string
-  date: string
-  lastContact: string
-  avatar: string
-  proposalNumber: string
-  expiryDate: string
+  totalAmount: number // Add totalAmount for easier access
 }
 
-// Dummy data for proposals
-const proposalsData: Proposal[] = [
-  {
-    id: "1",
-    name: "John Smith",
-    company: "Tech Corp",
-    email: "john@techcorp.com",
-    phone: "+1 234-567-8900",
-    location: "New York, NY",
-    status: "Sent",
-    source: "Website",
-    value: "$25,000",
-    date: "2024-01-15",
-    lastContact: "2024-01-14",
-    avatar: "JS",
-    proposalNumber: "PROP-001",
-    expiryDate: "2024-02-15"
-  },
-  {
-    id: "2",
-    name: "Sarah Johnson",
-    company: "StartupXYZ",
-    email: "sarah@startupxyz.com",
-    phone: "+1 234-567-8901",
-    location: "San Francisco, CA",
-    status: "Under Review",
-    value: "$15,000",
-    date: "2024-01-14",
-    lastContact: "2024-01-13",
-    avatar: "SJ",
-    proposalNumber: "PROP-002",
-    expiryDate: "2024-02-14"
-  },
-  {
-    id: "3",
-    name: "Mike Wilson",
-    company: "Global Inc",
-    email: "mike@globalinc.com",
-    phone: "+1 234-567-8902",
-    location: "Chicago, IL",
-    status: "Approved",
-    value: "$45,000",
-    date: "2024-01-13",
-    lastContact: "2024-01-12",
-    avatar: "MW",
-    proposalNumber: "PROP-003",
-    expiryDate: "2024-02-13"
-  },
-  {
-    id: "4",
-    name: "Emily Davis",
-    company: "Innovation Labs",
-    email: "emily@innovationlabs.com",
-    phone: "+1 234-567-8903",
-    location: "Austin, TX",
-    status: "Sent",
-    value: "$30,000",
-    date: "2024-01-12",
-    lastContact: "2024-01-11",
-    avatar: "ED",
-    proposalNumber: "PROP-004",
-    expiryDate: "2024-02-12"
-  },
-  {
-    id: "5",
-    name: "David Brown",
-    company: "Future Systems",
-    email: "david@futuresystems.com",
-    phone: "+1 234-567-8904",
-    location: "Seattle, WA",
-    status: "Negotiation",
-    value: "$20,000",
-    date: "2024-01-11",
-    lastContact: "2024-01-10",
-    avatar: "DB",
-    proposalNumber: "PROP-005",
-    expiryDate: "2024-02-11"
-  },
-  {
-    id: "6",
-    name: "Lisa Anderson",
-    company: "Digital Solutions",
-    email: "lisa@digitalsolutions.com",
-    phone: "+1 234-567-8905",
-    location: "Miami, FL",
-    status: "Accepted",
-    value: "$35,000",
-    date: "2024-01-10",
-    lastContact: "2024-01-09",
-    avatar: "LA",
-    proposalNumber: "PROP-006",
-    expiryDate: "2024-02-10"
-  },
-  {
-    id: "7",
-    name: "Robert Taylor",
-    company: "Enterprise Co",
-    email: "robert@enterpriseco.com",
-    phone: "+1 234-567-8906",
-    location: "Boston, MA",
-    status: "Rejected",
-    value: "$50,000",
-    date: "2024-01-09",
-    lastContact: "2024-01-08",
-    avatar: "RT",
-    proposalNumber: "PROP-007",
-    expiryDate: "2024-02-09"
-  },
-  {
-    id: "8",
-    name: "Jennifer White",
-    company: "Smart Tech",
-    email: "jennifer@smarttech.com",
-    phone: "+1 234-567-8907",
-    location: "Denver, CO",
-    status: "Draft",
-    value: "$18,000",
-    date: "2024-01-08",
-    lastContact: "2024-01-07",
-    avatar: "JW",
-    proposalNumber: "PROP-008",
-    expiryDate: "2024-02-08"
-  }
-]
-
 function getStatusColor(status: string) {
-  switch (status) {
-    case 'Draft':
+  switch (status.toLowerCase()) {
+    case 'draft':
       return 'bg-gray-100 text-gray-800'
-    case 'Sent':
+    case 'sent':
       return 'bg-blue-100 text-blue-800'
-    case 'Under Review':
+    case 'under_review':
       return 'bg-yellow-100 text-yellow-800'
-    case 'Approved':
+    case 'approved':
       return 'bg-green-100 text-green-800'
-    case 'Rejected':
+    case 'rejected':
       return 'bg-red-100 text-red-800'
-    case 'Negotiation':
+    case 'negotiation':
       return 'bg-orange-100 text-orange-800'
-    case 'Accepted':
+    case 'accepted':
       return 'bg-emerald-100 text-emerald-800'
     default:
       return 'bg-gray-100 text-gray-800'
@@ -193,51 +60,62 @@ function getStatusColor(status: string) {
 }
 
 // Column definitions for proposals table
-const proposalsColumns: ColumnDef<Proposal>[] = [
+const proposalsColumns: ColumnDef<ProposalTableItem>[] = [
   {
     accessorKey: "avatar",
     header: "",
-    cell: ({ row }) => (
-      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-        <span className="text-sm font-medium text-white">{row.original.avatar}</span>
-      </div>
-    ),
+    cell: ({ row }) => {
+      const initials = row.original.leadId?.name
+        ?.split(' ')
+        .map(n => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2) || 'PR'
+
+      return (
+        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+          <span className="text-sm font-medium text-white">{initials}</span>
+        </div>
+      )
+    },
     enableSorting: false,
     size: 50,
   },
   {
-    accessorKey: "name",
-    header: "Customer",
+    accessorKey: "title",
+    header: "Proposal",
     cell: ({ row }) => (
       <div>
-        <div className="font-medium">{row.original.name}</div>
-        <div className="text-sm text-muted-foreground">{row.original.company}</div>
+        <div className="font-medium">{row.original.title}</div>
+        <div className="text-sm text-muted-foreground">
+          {row.original.leadId?.company || 'N/A'}
+        </div>
       </div>
     ),
   },
   {
-    accessorKey: "email",
+    accessorKey: "leadId",
     header: "Contact",
     cell: ({ row }) => (
       <div className="space-y-1">
         <div className="flex items-center gap-2 text-sm">
           <Mail className="h-3 w-3 text-muted-foreground" />
-          {row.original.email}
+          {row.original.leadId?.email || 'N/A'}
         </div>
         <div className="flex items-center gap-2 text-sm">
           <Phone className="h-3 w-3 text-muted-foreground" />
-          {row.original.phone}
+          {row.original.leadId?.phone || 'N/A'}
         </div>
       </div>
     ),
   },
   {
-    accessorKey: "date",
-    header: "Date",
+    accessorKey: "totalAmount",
+    header: "Value",
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
-        <Calendar className="h-4 w-4 text-muted-foreground" />
-        {row.original.date}
+        <DollarSign className="h-4 w-4 text-muted-foreground" />
+        ${row.original.totalAmount?.toLocaleString() || '0'}
       </div>
     ),
   },
@@ -246,41 +124,19 @@ const proposalsColumns: ColumnDef<Proposal>[] = [
     header: "Status",
     cell: ({ row }) => (
       <Badge className={`${getStatusColor(row.original.status)} w-24 justify-center`}>
-        {row.original.status}
+        {row.original.status.replace('_', ' ').toUpperCase()}
       </Badge>
     ),
   },
   {
-    accessorKey: "action",
-    header: "",
+    accessorKey: "createdAt",
+    header: "Date",
     cell: ({ row }) => (
-      <Button className={`${getStatusColor(row.original.status)} w-26 justify-center`}>
-        {row.original.status}
-      </Button>
+      <div className="flex items-center gap-2">
+        <Calendar className="h-4 w-4 text-muted-foreground" />
+        {new Date(row.original.createdAt).toLocaleDateString()}
+      </div>
     ),
-  },
-]
-
-const proposalsCards: SectionCardData[] = [
-  {
-    id: "total-proposals",
-    title: "Total Proposals",
-    value: "2040",
-    description: "Total Proposals",
-    trend: {
-      value: "-15%",
-      isPositive: false,
-    },
-  },
-  {
-    id: "acceptance-rate",
-    title: "Acceptance Rate",
-    value: "89 %",
-    description: "Acceptance Rate",
-    trend: {
-      value: "+12.5%",
-      isPositive: true,
-    },
   },
 ]
 
@@ -288,20 +144,68 @@ export default function ProposalsContent() {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
-  const [sourceFilter, setSourceFilter] = useState("all")
 
-  const filteredProposals = proposalsData.filter(proposal => {
-    const matchesSearch = proposal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      proposal.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      proposal.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || proposal.status === statusFilter
-    const matchesSource = sourceFilter === "all" || proposal.source === sourceFilter
+  // Fetch real data from API
+  const { data: proposalsData, isLoading, error } = useProposals()
+  const { data: proposalStats, isLoading: statsLoading } = useProposalStats()
 
-    return matchesSearch && matchesStatus && matchesSource
-  })
+  console.log(proposalsData, "ppppppppppp")
+
+  // Transform API data for DataTable compatibility
+  const tableData: ProposalTableItem[] = useMemo(() => {
+    if (!proposalsData?.data?.proposals || !Array.isArray(proposalsData.data.proposals)) return []
+
+    return proposalsData.data.proposals.map(proposal => ({
+      ...proposal,
+      id: proposal._id, // Map _id to id for DataTable compatibility
+      totalAmount: proposal.pricing?.finalAmount || 0, // Use finalAmount from backend
+    }))
+  }, [proposalsData])
+
+  // Filter data based on search and status
+  const filteredProposals = useMemo(() => {
+    return tableData.filter(proposal => {
+      const matchesSearch = proposal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        proposal.leadId?.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        proposal.leadId?.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesStatus = statusFilter === "all" || proposal.status === statusFilter
+
+      return matchesSearch && matchesStatus
+    })
+  }, [tableData, searchTerm, statusFilter])
+
+  // Calculate stats from real data
+  const stats = useMemo(() => {
+    const total = proposalsData?.pagination?.total || 0
+    const accepted = tableData.filter(proposal => proposal.status === 'approved').length
+    const acceptanceRate = total > 0 ? ((accepted / total) * 100).toFixed(1) : '0'
+
+    return [
+      {
+        id: "total-proposals",
+        title: "Total Proposals",
+        value: total.toString(),
+        description: "Total Proposals",
+        trend: {
+          value: "+8%",
+          isPositive: true,
+        },
+      },
+      {
+        id: "acceptance-rate",
+        title: "Acceptance Rate",
+        value: `${acceptanceRate}%`,
+        description: "Acceptance Rate",
+        trend: {
+          value: "+12.5%",
+          isPositive: true,
+        },
+      },
+    ]
+  }, [proposalsData, tableData])
 
   // Configuration for proposals table
-  const proposalsConfig: DataTableConfig<Proposal> = {
+  const proposalsConfig: DataTableConfig<ProposalTableItem> = {
     enableDragAndDrop: false,
     enableSelection: false,
     enablePagination: true,
@@ -311,25 +215,36 @@ export default function ProposalsContent() {
       { value: "leads", label: "Leads" },
       { value: "proposals", label: "Proposals" },
     ],
-    enableSorting: ["date", "status"], // Only allow sorting on name and email columns
-    // actions: [
-    //   {
-    //     label: "View Details",
-    //     onClick: (proposal) => console.log("View proposal:", proposal),
-    //   }
-    // ],
+    enableSorting: ["title", "createdAt"],
+    actions: [
+      {
+        label: "View Details",
+        onClick: (proposal) => console.log("View proposal:", proposal),
+      }
+    ],
     actionsAsButtons: true,
     addButtonLabel: "Create Proposal",
     customColumnsLabel: "Customize Proposal Columns",
-    emptyStateMessage: "No proposals found.",
+    emptyStateMessage: isLoading ? "Loading proposals..." : "No proposals found.",
     pageSize: 10,
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-600 mb-2">Error loading proposals</p>
+          <p className="text-sm text-muted-foreground">{error.message}</p>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
       <div>
-        <SectionCards cards={proposalsCards} className="grid grid-cols-1 md:grid-cols-2 gap-6" />
+        <SectionCards cards={stats} className="grid grid-cols-1 md:grid-cols-2 gap-6" />
       </div>
 
       {/* Header with Search and Actions */}
@@ -339,13 +254,25 @@ export default function ProposalsContent() {
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search customer/company here..."
+              placeholder="Search proposal/company here..."
               className="pl-10 w-80"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Button 
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="sent">Sent</SelectItem>
+              <SelectItem value="accepted">Accepted</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
             className="flex items-center gap-2"
             onClick={() => router.push("/proposals/create")}
           >

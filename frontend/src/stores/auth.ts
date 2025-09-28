@@ -2,9 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 interface User {
-  _id: string;
-  firstName: string;
-  lastName: string;
+  id: string;
+  name: string;
   email: string;
   role: string;
 }
@@ -14,12 +13,11 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  isHydrated: boolean; // Track if the store has been hydrated from localStorag
+  isHydrated: boolean; // Track if the store has been hydrated from localStorage
   error: string | null;
-
   // Actions
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   clearError: () => void;
   setLoading: (loading: boolean) => void;
   setHydrated: () => void;
@@ -39,24 +37,13 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
 
         try {
-          const response = await fetch('http://localhost:5000/api/auth/login', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email, password }),
-          });
-
-          const data = await response.json();
-
-          if (!response.ok) {
-            throw new Error(data.message || 'Login failed');
-          }
+          const { authService } = await import('@/services/auth');
+          const authResponse = await authService.login({ email, password });
 
           // Store user data and token
           set({
-            user: data.user,
-            token: data.token,
+            user: authResponse.user,
+            token: authResponse.token,
             isAuthenticated: true,
             isLoading: false,
             error: null,
@@ -76,14 +63,22 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      logout: () => {
-        set({
-          user: null,
-          token: null,
-          isAuthenticated: false,
-          isLoading: false,
-          error: null,
-        });
+      logout: async () => {
+        try {
+          const { authService } = await import('@/services/auth');
+          await authService.logout();
+        } catch (error) {
+          console.error('Logout error:', error);
+        } finally {
+          // Clear local state regardless of server response
+          set({
+            user: null,
+            token: null,
+            isAuthenticated: false,
+            error: null,
+          });
+          window.location.href = '/login';
+        }
       },
 
       clearError: () => {
