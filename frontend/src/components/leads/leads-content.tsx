@@ -4,31 +4,18 @@ import { useState, useMemo } from "react"
 import { ColumnDef } from "@tanstack/react-table"
 import {
   Search,
-  Filter,
   Plus,
-  MoreHorizontal,
-  Eye,
-  Edit,
-  Trash2,
   Phone,
   Mail,
-  MapPin,
   Calendar,
-  User,
   Building2,
-  DollarSign
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { FaArrowTrendDown, FaArrowTrendUp } from "react-icons/fa6"
-import { CiCirclePlus } from "react-icons/ci"
-import { useRouter } from "next/navigation"
 import { DataTable, BaseDataItem, DataTableConfig } from "@/components/data-table"
-import { SectionCardData, SectionCards } from "../section-cards"
-import { useLeads, useLeadStats } from "@/hooks/useLeads"
+import { SectionCards } from "../section-cards"
+import { useLeads } from "@/hooks/useLeads"
 import { Lead } from "@/services/leads"
 import AddLeadForm from "./add-lead-form"
 import {
@@ -143,14 +130,11 @@ const leadsColumns: ColumnDef<LeadTableItem>[] = [
 ]
 
 export default function LeadsContent() {
-  const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
   const [isAddLeadDialogOpen, setIsAddLeadDialogOpen] = useState(false)
 
   // Fetch real data from API
   const { data: leadsData, isLoading, error, refetch } = useLeads()
-  const { data: leadStats, isLoading: statsLoading } = useLeadStats()
 
   // Debug logs
   console.log("Raw leadsData:", leadsData)
@@ -189,15 +173,14 @@ export default function LeadsContent() {
       const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         lead.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
         lead.email.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesStatus = statusFilter === "all" || lead.status === statusFilter
 
-      return matchesSearch && matchesStatus
+      return matchesSearch
     })
 
     console.log("Filtered leads:", filtered)
     console.log("Filtered leads length:", filtered.length)
     return filtered
-  }, [tableData, searchTerm, statusFilter])
+  }, [tableData, searchTerm])
 
   // Calculate stats from real data
   const stats = useMemo(() => {

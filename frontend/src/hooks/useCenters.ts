@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { centersService, Center, CreateCenterRequest, UpdateCenterRequest, CentersFilters, SearchCentersRequest, UpdateAvailabilityRequest } from '@/services/centers';
+import { centersService, CreateCenterRequest, UpdateCenterRequest, CentersFilters, SearchCentersRequest, UpdateAvailabilityRequest } from '@/services/centers';
 import { toast } from 'sonner';
 
 // Query Keys
@@ -59,7 +59,7 @@ export function useUpdateCenter() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateCenterRequest }) => 
+    mutationFn: ({ id, data }: { id: string; data: UpdateCenterRequest }) =>
       centersService.updateCenter(id, data),
     onSuccess: (updatedCenter) => {
       queryClient.invalidateQueries({ queryKey: CENTERS_QUERY_KEYS.lists() });
@@ -91,7 +91,7 @@ export function useUpdateAvailability() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateAvailabilityRequest }) => 
+    mutationFn: ({ id, data }: { id: string; data: UpdateAvailabilityRequest }) =>
       centersService.updateAvailability(id, data),
     onSuccess: (updatedCenter) => {
       queryClient.invalidateQueries({ queryKey: CENTERS_QUERY_KEYS.lists() });

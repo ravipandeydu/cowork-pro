@@ -1,12 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { 
-  proposalsService, 
-  Proposal, 
-  CreateProposalRequest, 
-  UpdateProposalRequest, 
+import {
+  proposalsService,
+  CreateProposalRequest,
+  UpdateProposalRequest,
   ProposalsFilters,
-  SendProposalRequest 
+  SendProposalRequest
 } from '@/services/proposals';
 
 // Query Keys
@@ -50,7 +49,7 @@ export const useCreateProposal = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (proposalData: CreateProposalRequest) => 
+    mutationFn: (proposalData: CreateProposalRequest) =>
       proposalsService.createProposal(proposalData),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: proposalKeys.lists() });
@@ -128,7 +127,7 @@ export const useGenerateProposalPDF = () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       toast.success('PDF generated successfully');
     },
     onError: (error: Error) => {

@@ -4,32 +4,19 @@ import { useState, useMemo } from "react"
 import { ColumnDef } from "@tanstack/react-table"
 import {
   Search,
-  Filter,
   Plus,
-  MoreHorizontal,
-  Eye,
-  Edit,
-  Trash2,
   Phone,
   Mail,
-  MapPin,
   Calendar,
-  User,
-  Building2,
   DollarSign
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { FaArrowTrendDown, FaArrowTrendUp } from "react-icons/fa6"
-import { CiCirclePlus } from "react-icons/ci"
 import { useRouter } from "next/navigation"
 import { DataTable, BaseDataItem, DataTableConfig } from "@/components/data-table"
-import { SectionCardData, SectionCards } from "../section-cards"
-import { useProposals, useProposalStats } from "@/hooks/useProposals"
+import { SectionCards } from "../section-cards"
+import { useProposals } from "@/hooks/useProposals"
 import { Proposal } from "@/services/proposals"
 
 // Proposal interface extending BaseDataItem for DataTable compatibility
@@ -143,11 +130,9 @@ const proposalsColumns: ColumnDef<ProposalTableItem>[] = [
 export default function ProposalsContent() {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
 
   // Fetch real data from API
   const { data: proposalsData, isLoading, error } = useProposals()
-  const { data: proposalStats, isLoading: statsLoading } = useProposalStats()
 
   console.log(proposalsData, "ppppppppppp")
 
@@ -168,11 +153,10 @@ export default function ProposalsContent() {
       const matchesSearch = proposal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         proposal.leadId?.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         proposal.leadId?.email?.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesStatus = statusFilter === "all" || proposal.status === statusFilter
 
-      return matchesSearch && matchesStatus
+      return matchesSearch
     })
-  }, [tableData, searchTerm, statusFilter])
+  }, [tableData, searchTerm])
 
   // Calculate stats from real data
   const stats = useMemo(() => {

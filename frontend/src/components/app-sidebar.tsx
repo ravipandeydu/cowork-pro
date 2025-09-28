@@ -6,14 +6,11 @@ import {
     Users,
     Bell,
     FileText,
-    MoreHorizontal,
     UserCheck,
     Contact,
     HelpCircle,
-    MoreVertical
 } from "lucide-react"
 
-import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
 import { NavSales } from "@/components/nav-sales"
 import { NavContract } from "@/components/nav-contract"
@@ -24,9 +21,6 @@ import {
     Sidebar,
     SidebarContent,
     SidebarFooter,
-    SidebarGroup,
-    SidebarGroupContent,
-    SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
@@ -89,7 +83,7 @@ const data = {
     ],
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ pathname, ...props }: React.ComponentProps<typeof Sidebar> & { pathname?: string }) {
     const { user } = useAuthStore()
 
     // Create user object for NavUser component
@@ -120,10 +114,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </SidebarMenu>
             </SidebarHeader>
             <SidebarContent>
-                <NavMain items={data.navMain} />
-                <NavSales items={data.navSales} />
-                <NavContract items={data.navContract} />
-                <NavSecondary items={data.navSettings} className="mt-auto" />
+                <NavMain items={data.navMain} pathname={pathname} />
+                <NavSales items={data.navSales} pathname={pathname} />
+                <NavContract items={data.navContract} pathname={pathname} />
+                <NavSecondary items={data.navSettings} className="mt-auto" pathname={pathname} />
             </SidebarContent>
             <SidebarFooter>
                 <NavUser user={userData} />

@@ -3,8 +3,6 @@
 import { useState } from "react"
 import { ColumnDef } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
     Plus,
@@ -12,20 +10,8 @@ import {
     Mail,
     MapPin,
     Calendar,
-    Building2,
-    User,
-    Eye,
-    Edit,
-    Trash2,
-    MoreHorizontal,
     Search,
 } from "lucide-react"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { DataTable, BaseDataItem, DataTableConfig } from "@/components/data-table"
 import { SectionCardData, SectionCards } from "@/components/section-cards"
 
@@ -181,19 +167,6 @@ const customersCards: SectionCardData[] = [
     },
 ]
 
-function getStatusColor(status: string) {
-    switch (status) {
-        case 'Active':
-            return 'bg-green-100 text-green-800'
-        case 'Inactive':
-            return 'bg-red-100 text-red-800'
-        case 'Pending':
-            return 'bg-yellow-100 text-yellow-800'
-        default:
-            return 'bg-gray-100 text-gray-800'
-    }
-}
-
 // Column definitions for customers table
 const customersColumns: ColumnDef<Customer>[] = [
     {
@@ -309,32 +282,6 @@ export default function CustomersPage() {
         customColumnsLabel: "Customize Customer Columns",
         emptyStateMessage: "No customers found.",
         pageSize: 10,
-    }
-
-    const getStatusColor = (status: string) => {
-        switch (status.toLowerCase()) {
-            case "active":
-                return "bg-green-100 text-green-800"
-            case "inactive":
-                return "bg-gray-100 text-gray-800"
-            case "pending":
-                return "bg-yellow-100 text-yellow-800"
-            default:
-                return "bg-gray-100 text-gray-800"
-        }
-    }
-
-    const getStatusBadgeVariant = (status: string) => {
-        switch (status.toLowerCase()) {
-            case "active":
-                return "default"
-            case "inactive":
-                return "secondary"
-            case "pending":
-                return "outline"
-            default:
-                return "default"
-        }
     }
 
     return (

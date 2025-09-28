@@ -7,20 +7,14 @@ import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import {
   User,
-  Mail,
-  Phone,
   Building2,
   DollarSign,
-  Calendar,
   Users,
-  MapPin,
   Plus,
   X
 } from "lucide-react"
@@ -82,9 +76,6 @@ export default function AddLeadForm({ onSuccess, onCancel }: AddLeadFormProps) {
       meetingRooms: 0,
     }
   })
-
-  const businessSize = watch("businessSize")
-  const source = watch("source")
 
   const onSubmit = async (data: AddLeadFormData) => {
     setIsSubmitting(true)

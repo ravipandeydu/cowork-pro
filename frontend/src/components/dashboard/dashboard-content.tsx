@@ -1,66 +1,62 @@
 "use client"
 
-import { 
-  TrendingUp, 
-  Users, 
-  DollarSign, 
+import {
+  TrendingUp,
+  Users,
+  DollarSign,
   FileText,
   MoreHorizontal
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table"
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   LineChart,
   Line
 } from "recharts"
-import { useLeads, useLeadStats } from "@/hooks/useLeads"
-import { useProposals, useProposalStats } from "@/hooks/useProposals"
-import { useCenters } from "@/hooks/useCenters"
+import { useLeads } from "@/hooks/useLeads"
+import { useProposals } from "@/hooks/useProposals"
 import { useMemo } from "react"
 
 export default function DashboardContent() {
   // Fetch real data from APIs
   const { data: leadsData, isLoading: leadsLoading } = useLeads()
-  const { data: leadStats, isLoading: leadStatsLoading } = useLeadStats()
   const { data: proposalsData, isLoading: proposalsLoading } = useProposals()
-  const { data: proposalStats, isLoading: proposalStatsLoading } = useProposalStats()
-  const { data: centersData, isLoading: centersLoading } = useCenters()
 
   // Calculate stats from real data
   const stats = useMemo(() => {
     const totalLeads = Array.isArray(leadsData?.data) ? leadsData.data.length : 0
     const totalProposals = Array.isArray(proposalsData?.data) ? proposalsData.data.length : 0
-    const activeProposals = Array.isArray(proposalsData?.data) 
-      ? proposalsData.data.filter(p => p.status === 'sent' || p.status === 'viewed').length 
+    const activeProposals = Array.isArray(proposalsData?.data)
+      ? proposalsData.data.filter(p => p.status === 'sent' || p.status === 'viewed').length
       : 0
-    
+
     // Calculate conversion rate (proposals / leads * 100)
     const conversionRate = totalLeads > 0 ? ((totalProposals / totalLeads) * 100).toFixed(1) : '0'
-    
+
     // Calculate total revenue from approved proposals
     const totalRevenue = Array.isArray(proposalsData?.data)
       ? proposalsData.data.reduce((sum, proposal) => {
-          if (proposal.status === 'approved') {
-            return sum + (proposal.pricing?.totalAmount || 0)
-          }
-          return sum
-        }, 0)
+        if (proposal.status === 'approved') {
+          return sum + (proposal.pricing?.totalAmount || 0)
+        }
+        return sum
+      }, 0)
       : 0
 
     return {
@@ -96,7 +92,7 @@ export default function DashboardContent() {
     return { barChartData, lineChartData }
   }, [])
 
-  const isLoading = leadsLoading || proposalsLoading || leadStatsLoading || proposalStatsLoading
+  const isLoading = leadsLoading || proposalsLoading
   return (
     <>
       {/* Stats Cards */}
@@ -171,15 +167,15 @@ export default function DashboardContent() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData.barChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="value" fill="#3b82f6" />
-              <Bar dataKey="leads" fill="#10b981" />
-            </BarChart>
-          </ResponsiveContainer>
+              <BarChart data={chartData.barChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" fill="#3b82f6" />
+                <Bar dataKey="leads" fill="#10b981" />
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 
@@ -190,15 +186,15 @@ export default function DashboardContent() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData.lineChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="proposals" stroke="#3b82f6" strokeWidth={2} />
-              <Line type="monotone" dataKey="conversions" stroke="#10b981" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
+              <LineChart data={chartData.lineChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="proposals" stroke="#3b82f6" strokeWidth={2} />
+                <Line type="monotone" dataKey="conversions" stroke="#10b981" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
@@ -236,11 +232,11 @@ export default function DashboardContent() {
                     <TableCell>{lead.phone}</TableCell>
                     <TableCell>{lead.businessType}</TableCell>
                     <TableCell>
-                      <Badge 
+                      <Badge
                         variant={
-                          lead.status === 'converted' ? 'default' : 
-                          lead.status === 'contacted' ? 'secondary' : 
-                          'outline'
+                          lead.status === 'converted' ? 'default' :
+                            lead.status === 'contacted' ? 'secondary' :
+                              'outline'
                         }
                       >
                         {lead.status}

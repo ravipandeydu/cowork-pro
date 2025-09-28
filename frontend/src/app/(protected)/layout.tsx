@@ -1,7 +1,7 @@
+"use client"
+
+import { usePathname } from "next/navigation"
 import { AppSidebar } from "@/components/app-sidebar"
-import { ChartAreaInteractive } from "@/components/chart-area-interactive"
-import { DataTable } from "@/components/data-table"
-import { SectionCards } from "@/components/section-cards"
 import { SiteHeader } from "@/components/site-header"
 import { AuthGuard } from "@/components/auth/auth-guard"
 import {
@@ -9,9 +9,9 @@ import {
     SidebarProvider,
 } from "@/components/ui/sidebar"
 
-import data from "./dashboard/data.json"
-
 export default function Layout({ children }: { children: React.ReactNode }) {
+    const pathname = usePathname()
+    
     return (
         <AuthGuard>
             <SidebarProvider
@@ -22,7 +22,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     } as React.CSSProperties
                 }
             >
-                <AppSidebar variant="inset" />
+                <AppSidebar variant="inset" pathname={pathname} />
                 <SidebarInset>
                     <SiteHeader />
                     <div className="px-4 py-4">

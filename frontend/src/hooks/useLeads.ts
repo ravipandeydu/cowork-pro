@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { leadsService, Lead, CreateLeadRequest, UpdateLeadRequest, LeadsFilters, AddNoteRequest } from '@/services/leads';
+import { leadsService, CreateLeadRequest, UpdateLeadRequest, LeadsFilters, AddNoteRequest } from '@/services/leads';
 import { toast } from 'sonner';
 
 // Query Keys
@@ -58,7 +58,7 @@ export function useUpdateLead() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateLeadRequest }) => 
+    mutationFn: ({ id, data }: { id: string; data: UpdateLeadRequest }) =>
       leadsService.updateLead(id, data),
     onSuccess: (updatedLead) => {
       queryClient.invalidateQueries({ queryKey: LEADS_QUERY_KEYS.lists() });
@@ -92,7 +92,7 @@ export function useAddNote() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: AddNoteRequest }) => 
+    mutationFn: ({ id, data }: { id: string; data: AddNoteRequest }) =>
       leadsService.addNote(id, data),
     onSuccess: (updatedLead) => {
       queryClient.invalidateQueries({ queryKey: LEADS_QUERY_KEYS.detail(updatedLead._id) });

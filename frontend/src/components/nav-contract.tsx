@@ -28,12 +28,14 @@ import {
 
 export function NavContract({
   items,
+  pathname,
 }: {
   items: {
     title: string
     url: string
     icon: Icon | LucideIcon
   }[]
+  pathname?: string
 }) {
   const { isMobile } = useSidebar()
 
@@ -43,7 +45,7 @@ export function NavContract({
       <SidebarMenu>
         {items.map((item) => (
           <SidebarMenuItem key={item.title}>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton asChild isActive={pathname === item.url || pathname?.startsWith(item.url + "/")}>
               <a href={item.url}>
                 <item.icon />
                 <span>{item.title}</span>

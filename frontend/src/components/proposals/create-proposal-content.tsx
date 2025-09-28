@@ -5,13 +5,11 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { ArrowLeft, Plus, Trash2, Upload, FileText, Calendar, DollarSign, User, Building2, Mail, Phone, MapPin, ArrowRight, CheckCircle, Search, Copy, X } from "lucide-react"
+import { ArrowLeft, FileText, User, Building2, Mail, ArrowRight, CheckCircle, Search, Copy, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent, } from "@/components/ui/card"
 import { Stepper, Step } from "@/components/ui/stepper"
 import { Badge } from "@/components/ui/badge"
 import { useLeads } from "@/hooks/useLeads"
@@ -251,13 +249,6 @@ export default function CreateProposalContent() {
     }
   ]
 
-  const updateFormData = (field: keyof ProposalFormData, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }))
-  }
-
   // Function to handle customer selection
   const selectCustomer = (customer: Customer) => {
     setFormData(prev => ({
@@ -288,48 +279,6 @@ export default function CreateProposalContent() {
         }
       }
     })
-  }
-
-  const addService = () => {
-    const newService = {
-      id: Date.now().toString(),
-      name: "",
-      description: "",
-      quantity: 1,
-      rate: 0,
-      amount: 0
-    }
-    setFormData(prev => ({
-      ...prev,
-      services: [...prev.services, newService]
-    }))
-  }
-
-  const removeService = (id: string) => {
-    setFormData(prev => ({
-      ...prev,
-      services: prev.services.filter(service => service.id !== id)
-    }))
-  }
-
-  const updateService = (id: string, field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      services: prev.services.map(service => {
-        if (service.id === id) {
-          const updated = { ...service, [field]: value }
-          if (field === 'quantity' || field === 'rate') {
-            updated.amount = updated.quantity * updated.rate
-          }
-          return updated
-        }
-        return service
-      })
-    }))
-  }
-
-  const getTotalAmount = () => {
-    return formData.services.reduce((total, service) => total + service.amount, 0)
   }
 
   const handleNext = () => {
