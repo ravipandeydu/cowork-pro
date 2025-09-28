@@ -226,7 +226,8 @@ export default function LeadsContent() {
     actionsAsButtons: true,
     customColumnsLabel: "Customize Lead Columns",
     emptyStateMessage: isLoading ? "Loading leads..." : "No leads found.",
-    pageSize: 10,
+    pageSize: 1,
+    pageSizeOptions: [1, 5, 10, 20],
   }
 
   console.log("leadsConfig:", leadsConfig)

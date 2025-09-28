@@ -251,16 +251,38 @@ export default function CreateProposalContent() {
 
   // Function to handle customer selection
   const selectCustomer = (customer: Customer) => {
-    setFormData(prev => ({
-      ...prev,
-      selectedCustomer: customer,
-      clientName: customer.name,
-      clientEmail: customer.email,
-      clientPhone: customer.phone,
-      clientCompany: customer.company,
-      clientAddress: customer.location || ""
-    }))
-    setCustomerSearchTerm(`${customer.name}`)
+    setFormData(prev => {
+      // If the same customer is already selected, deselect them
+      if (prev.selectedCustomer?.id === customer.id) {
+        return {
+          ...prev,
+          selectedCustomer: null,
+          clientName: "",
+          clientEmail: "",
+          clientPhone: "",
+          clientCompany: "",
+          clientAddress: ""
+        }
+      }
+      // Otherwise, select the new customer
+      return {
+        ...prev,
+        selectedCustomer: customer,
+        clientName: customer.name,
+        clientEmail: customer.email,
+        clientPhone: customer.phone,
+        clientCompany: customer.company,
+        clientAddress: customer.location || ""
+      }
+    })
+    
+    // Update search term based on selection
+    setCustomerSearchTerm(prev => {
+      if (formData.selectedCustomer?.id === customer.id) {
+        return "" // Clear search term when deselecting
+      }
+      return `${customer.name}` // Set customer name when selecting
+    })
   }
 
   // Function to handle hub centre selection
@@ -268,11 +290,21 @@ export default function CreateProposalContent() {
     setFormData(prev => {
       const isSelected = prev.selectedHubCentres.some(centre => centre.id === hubCentre.id)
       if (isSelected) {
+        // When deselecting, clear the search term if this was the only selected center
+        const remainingCentres = prev.selectedHubCentres.filter(centre => centre.id !== hubCentre.id)
+        if (remainingCentres.length === 0) {
+          setHubCentreSearchTerm("")
+        } else {
+          // Set search term to the first remaining selected center
+          setHubCentreSearchTerm(remainingCentres[0].name)
+        }
         return {
           ...prev,
-          selectedHubCentres: prev.selectedHubCentres.filter(centre => centre.id !== hubCentre.id)
+          selectedHubCentres: remainingCentres
         }
       } else {
+        // When selecting, update the search term to show the selected center
+        setHubCentreSearchTerm(hubCentre.name)
         return {
           ...prev,
           selectedHubCentres: [...prev.selectedHubCentres, hubCentre]
@@ -617,19 +649,7 @@ export default function CreateProposalContent() {
                 })}
               </div>
 
-              {/* Selected Hub Centres Summary */}
-              {formData.selectedHubCentres.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Selected Hub Centres:</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.selectedHubCentres.map((centre) => (
-                      <Badge key={centre.id} variant="secondary" className="text-xs">
-                        {centre.name}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
+
             </div>
           </div>
         )

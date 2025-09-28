@@ -47,22 +47,10 @@ import {
     useReactTable,
     VisibilityState,
 } from "@tanstack/react-table"
-import { toast } from "sonner"
 
-import { useIsMobile } from "@/hooks/use-mobile"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import {
-    Drawer,
-    DrawerClose,
-    DrawerContent,
-    DrawerDescription,
-    DrawerFooter,
-    DrawerHeader,
-    DrawerTitle,
-    DrawerTrigger,
-} from "@/components/ui/drawer"
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -71,7 +59,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
     Select,
@@ -80,7 +67,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
 import {
     Table,
     TableBody,
@@ -95,7 +81,7 @@ import {
     TabsList,
     TabsTrigger,
 } from "@/components/ui/tabs"
-import { ChevronDown, ChevronLeft, ChevronUp } from "lucide-react"
+import { ChevronDown, ChevronUp, EllipsisVertical } from "lucide-react"
 
 // Generic interfaces for dynamic data table
 export interface BaseDataItem {
@@ -281,7 +267,7 @@ export function createActionsColumn<T extends BaseDataItem>(
                             className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
                             size="icon"
                         >
-                            <IconGripVertical />
+                            <EllipsisVertical />
                             <span className="sr-only">Open menu</span>
                         </Button>
                     </DropdownMenuTrigger>
