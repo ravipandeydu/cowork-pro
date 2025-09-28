@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { ArrowLeft, Plus, Trash2, Upload, FileText, Calendar, DollarSign, User, Building2, Mail, Phone, MapPin, ArrowRight, CheckCircle, Search } from "lucide-react"
+import { ArrowLeft, Plus, Trash2, Upload, FileText, Calendar, DollarSign, User, Building2, Mail, Phone, MapPin, ArrowRight, CheckCircle, Search, Copy, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -237,6 +237,7 @@ export default function CreateProposalContent() {
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState<ProposalFormData>(initialFormData)
   const [customerSearchTerm, setCustomerSearchTerm] = useState("")
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [showPdfViewer, setShowPdfViewer] = useState(false)
 
   // React Hook Form for offer details (step 3)
@@ -418,6 +419,23 @@ export default function CreateProposalContent() {
     console.log("Proposal submitted:", finalFormData)
     // Show PDF viewer instead of redirecting
     setShowPdfViewer(true)
+  }
+
+  // Function to copy link to clipboard
+  const copyLinkToClipboard = () => {
+    const proposalLink = "https://proposal.ia.co/#FMfcg"
+    navigator.clipboard.writeText(proposalLink).then(() => {
+      // You could add a toast notification here
+      console.log("Link copied to clipboard")
+    })
+  }
+
+  // Function to handle sending proposal
+  const handleSendProposal = () => {
+    // In a real app, this would send the proposal via email
+    console.log("Sending proposal to:", formData.clientEmail)
+    setShowSuccessModal(false)
+    // Optionally redirect to proposals list or show another confirmation
   }
 
   const renderStepContent = () => {
@@ -797,7 +815,86 @@ export default function CreateProposalContent() {
   return (
     <div className="min-h-screen bg-gray-50/50">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {showPdfViewer ? (
+        {showSuccessModal ? (
+          // Success Modal UI
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+              {/* Modal Header */}
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Great Job!</h2>
+                <p className="text-gray-600">Your proposal is ready</p>
+              </div>
+
+              {/* Email Section */}
+              <div className="mb-6">
+                <p className="text-sm text-gray-600 mb-4">Directly email the proposal to your client.</p>
+
+                {/* Client Info */}
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg mb-4">
+                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                    <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center">
+                      <CheckCircle className="h-4 w-4 text-white" />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">WorkNest Innovations</h4>
+                    <p className="text-sm text-gray-600">Neha Kapoor</p>
+                  </div>
+                </div>
+
+                {/* Email Input */}
+                <div className="relative mb-4">
+                  <Input
+                    type="email"
+                    value={formData.clientEmail || "neha.kapoor@gmail.com"}
+                    readOnly
+                    className="pr-10"
+                  />
+                  <Mail className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                </div>
+
+                {/* OR Divider */}
+                <div className="flex items-center my-4">
+                  <div className="flex-1 border-t border-gray-200"></div>
+                  <span className="px-3 text-sm text-gray-500">OR COPY LINK</span>
+                  <div className="flex-1 border-t border-gray-200"></div>
+                </div>
+
+                {/* Copy Link */}
+                <div className="relative mb-6">
+                  <Input
+                    type="text"
+                    value="https://proposal.ia.co/#FMfcg"
+                    readOnly
+                    className="pr-10"
+                  />
+                  <button
+                    onClick={copyLinkToClipboard}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Send Proposal Button */}
+                <Button
+                  onClick={handleSendProposal}
+                  className="w-full bg-black text-white hover:bg-gray-800"
+                >
+                  Send Proposal
+                </Button>
+              </div>
+
+              {/* Close Button */}
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        ) : showPdfViewer ? (
           // PDF Viewer UI
           <div className="bg-white rounded-lg shadow-lg">
             {/* Header */}
@@ -816,20 +913,41 @@ export default function CreateProposalContent() {
                 <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                   Download PDF
                 </button>
-                <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" onClick={() => {
+                  // Show success modal instead of PDF viewer
+                  setShowSuccessModal(true)
+                }}>
                   Send Proposal
                 </button>
               </div>
             </div>
-            
+
             {/* PDF Viewer */}
             <div className="p-4">
               <div className="bg-gray-100 rounded-lg p-4 min-h-[600px] flex items-center justify-center">
-                <iframe
-                  src="/src/screens/Resume (5).pdf"
+                <object
+                  data="/resume-sample.pdf"
+                  type="application/pdf"
                   className="w-full h-[600px] border-0 rounded"
                   title="Proposal PDF"
-                />
+                >
+                  <embed
+                    src="/resume-sample.pdf"
+                    type="application/pdf"
+                    className="w-full h-[600px] border-0 rounded"
+                  />
+                  <div className="flex flex-col items-center justify-center h-full text-gray-600">
+                    <p className="mb-4">Unable to display PDF file.</p>
+                    <a
+                      href="/resume-sample.pdf"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      Download PDF
+                    </a>
+                  </div>
+                </object>
               </div>
             </div>
           </div>
@@ -855,52 +973,52 @@ export default function CreateProposalContent() {
                 <p className="text-gray-600">Follow the steps below to create a professional proposal</p>
               </div>
 
-          {/* Stepper */}
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <Stepper steps={steps} className="mb-0" />
-            </CardContent>
-          </Card>
-        </div>
+              {/* Stepper */}
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-6">
+                  <Stepper steps={steps} className="mb-0" />
+                </CardContent>
+              </Card>
+            </div>
 
-        {/* Form Content */}
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-8">
-            {renderStepContent()}
-          </CardContent>
-        </Card>
+            {/* Form Content */}
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-8">
+                {renderStepContent()}
+              </CardContent>
+            </Card>
 
-        {/* Navigation */}
-        <div className="flex justify-between mt-8">
-          <Button
-            variant="outline"
-            onClick={handlePrevious}
-            disabled={currentStep === 0}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Previous
-          </Button>
-
-          <div className="flex gap-3">
-            {currentStep < 2 ? (
+            {/* Navigation */}
+            <div className="flex justify-between mt-8">
               <Button
-                onClick={handleNext}
+                variant="outline"
+                onClick={handlePrevious}
+                disabled={currentStep === 0}
                 className="flex items-center gap-2"
               >
-                Next
-                <ArrowRight className="h-4 w-4" />
+                <ArrowLeft className="h-4 w-4" />
+                Previous
               </Button>
-            ) : (
-              <Button
-                onClick={handleSubmit}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-              >
-                <CheckCircle className="h-4 w-4" />
-                Generate Proposal
-              </Button>
-            )}
-          </div>
+
+              <div className="flex gap-3">
+                {currentStep < 2 ? (
+                  <Button
+                    onClick={handleNext}
+                    className="flex items-center gap-2"
+                  >
+                    Next
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleSubmit}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    Generate Proposal
+                  </Button>
+                )}
+              </div>
             </div>
           </>
         )}
