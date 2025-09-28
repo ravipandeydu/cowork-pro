@@ -18,6 +18,8 @@ import { useLeads } from "@/hooks/useLeads"
 import { Lead } from "@/services/leads"
 import { useCenters } from "@/hooks/useCenters"
 import { Center } from "@/services/centers"
+import { useCreateProposal, useSendProposal } from "@/hooks/useProposals"
+import { pdfGeneratorService } from "@/services/pdfGenerator"
 
 // Hub Centre interface for selection (mapped from Center)
 interface HubCentre {
@@ -159,6 +161,13 @@ export default function CreateProposalContent() {
   const [customerSearchTerm, setCustomerSearchTerm] = useState("")
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [showPdfViewer, setShowPdfViewer] = useState(false)
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+  const [createdProposalId, setCreatedProposalId] = useState<string | null>(null)
+
+  // Mutations
+  const createProposalMutation = useCreateProposal()
+  const sendProposalMutation = useSendProposal()
 
   // Fetch leads data
   const { data: leadsData, isLoading: leadsLoading, error: leadsError } = useLeads()
@@ -254,7 +263,7 @@ export default function CreateProposalContent() {
       clientEmail: customer.email,
       clientPhone: customer.phone,
       clientCompany: customer.company,
-      clientAddress: customer.location
+      clientAddress: customer.location || ""
     }))
     setCustomerSearchTerm("")
   }
@@ -365,25 +374,164 @@ export default function CreateProposalContent() {
     }
 
     console.log("Proposal submitted:", finalFormData)
-    // Show PDF viewer instead of redirecting
-    setShowPdfViewer(true)
+    
+    // Validate required fields for proposal creation
+    if (!finalFormData.selectedCustomer?.id) {
+      alert("Please select a customer")
+      return
+    }
+    
+    if (!finalFormData.selectedHubCentres || finalFormData.selectedHubCentres.length === 0) {
+      alert("Please select at least one coworking center")
+      return
+    }
+
+    // Create proposal in backend first
+    setIsGeneratingPdf(true)
+    try {
+      // Prepare proposal data according to CreateProposalRequest interface
+      const proposalData = {
+        leadId: finalFormData.selectedCustomer.id,
+        centerId: finalFormData.selectedHubCentres[0].id, // Use first selected center
+        title: `Proposal for ${finalFormData.clientCompany || finalFormData.selectedCustomer.company}`,
+        selectedSeating: {
+          hotDesks: parseInt(finalFormData.hotDesks) || 0,
+          dedicatedDesks: parseInt(finalFormData.dedicatedDesks) || 0,
+          privateCabins: parseInt(finalFormData.privateCabins) || 0,
+          meetingRooms: parseInt(finalFormData.meetingRooms) || 0,
+        },
+        pricing: {
+          baseAmount: parseFloat(finalFormData.totalAmount) || 0,
+          discountPercentage: parseFloat(finalFormData.discountPercentage) || 0,
+          taxPercentage: parseFloat(finalFormData.taxPercentage) || 0,
+          breakdown: {
+            hotDesks: { 
+              quantity: parseInt(finalFormData.hotDesks) || 0, 
+              rate: parseFloat(finalFormData.hotDeskRate) || 0, 
+              amount: (parseInt(finalFormData.hotDesks) || 0) * (parseFloat(finalFormData.hotDeskRate) || 0)
+            },
+            dedicatedDesks: { 
+              quantity: parseInt(finalFormData.dedicatedDesks) || 0, 
+              rate: parseFloat(finalFormData.dedicatedDeskRate) || 0, 
+              amount: (parseInt(finalFormData.dedicatedDesks) || 0) * (parseFloat(finalFormData.dedicatedDeskRate) || 0)
+            },
+            privateCabins: { 
+              quantity: parseInt(finalFormData.privateCabins) || 0, 
+              rate: parseFloat(finalFormData.privateCabinRate) || 0, 
+              amount: (parseInt(finalFormData.privateCabins) || 0) * (parseFloat(finalFormData.privateCabinRate) || 0)
+            },
+            meetingRooms: { 
+              quantity: parseInt(finalFormData.meetingRooms) || 0, 
+              rate: parseFloat(finalFormData.meetingRoomRate) || 0, 
+              amount: (parseInt(finalFormData.meetingRooms) || 0) * (parseFloat(finalFormData.meetingRoomRate) || 0)
+            },
+          },
+        },
+        terms: {
+          duration: finalFormData.contractDuration || "monthly",
+          startDate: finalFormData.startDate || new Date().toISOString().split('T')[0],
+          endDate: finalFormData.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          paymentTerms: finalFormData.paymentTerms || "Net 30",
+          cancellationPolicy: finalFormData.cancellationPolicy || "30 days notice required",
+        },
+        validUntil: finalFormData.validUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        notes: finalFormData.notes || "",
+      }
+
+      // Create the proposal
+      const createdProposal = await createProposalMutation.mutateAsync(proposalData)
+      setCreatedProposalId(createdProposal._id)
+
+      // Generate PDF using the created proposal data
+      const generatedPdfUrl = await pdfGeneratorService.generatePDFUrl(finalFormData)
+      setPdfUrl(generatedPdfUrl)
+      setShowPdfViewer(true)
+    } catch (error) {
+      console.error("Error creating proposal or generating PDF:", error)
+      alert("Failed to create proposal. Please try again.")
+    } finally {
+      setIsGeneratingPdf(false)
+    }
   }
 
-  // Function to copy link to clipboard
-  const copyLinkToClipboard = () => {
-    const proposalLink = "https://proposal.ia.co/#FMfcg"
-    navigator.clipboard.writeText(proposalLink).then(() => {
-      // You could add a toast notification here
-      console.log("Link copied to clipboard")
-    })
+  // Function to handle PDF download
+  const handleDownloadPDF = async () => {
+    if (!pdfUrl) {
+      // Generate PDF if not already generated
+      setIsGeneratingPdf(true)
+      try {
+        const offerData = offerForm.getValues()
+        const finalFormData = {
+          ...formData,
+          ...offerData
+        }
+        await pdfGeneratorService.downloadPDF(finalFormData, `proposal-${formData.clientCompany || 'draft'}.pdf`)
+      } catch (error) {
+        console.error("Error downloading PDF:", error)
+        alert("Failed to download PDF. Please try again.")
+      } finally {
+        setIsGeneratingPdf(false)
+      }
+    } else {
+      // Download existing PDF
+      const link = document.createElement('a')
+      link.href = pdfUrl
+      link.download = `proposal-${formData.clientCompany || 'draft'}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    }
+  }
+
+  // Function to clean up PDF URL when component unmounts or PDF viewer closes
+  const closePdfViewer = () => {
+    if (pdfUrl) {
+      URL.revokeObjectURL(pdfUrl)
+      setPdfUrl(null)
+    }
+    setShowPdfViewer(false)
   }
 
   // Function to handle sending proposal
-  const handleSendProposal = () => {
-    // In a real app, this would send the proposal via email
-    console.log("Sending proposal to:", formData.clientEmail)
-    setShowSuccessModal(false)
-    // Optionally redirect to proposals list or show another confirmation
+  const handleSendProposal = async () => {
+    if (!createdProposalId) {
+      console.error("No proposal ID available for sending")
+      return
+    }
+
+    try {
+      await sendProposalMutation.mutateAsync({ 
+        id: createdProposalId,
+        data: {
+          emailMessage: `Dear ${formData.clientName},\n\nPlease find attached our proposal for coworking space services.\n\nBest regards,\nCoworkPro Team`
+        }
+      })
+      
+      setShowSuccessModal(false)
+      // Optionally redirect to proposals list or show another confirmation
+      console.log("Proposal sent successfully to:", formData.clientEmail)
+    } catch (error) {
+      console.error("Failed to send proposal:", error)
+    }
+  }
+
+  // Function to copy proposal link to clipboard
+  const copyLinkToClipboard = async () => {
+    try {
+      const proposalLink = "https://proposal.ia.co/#FMfcg" // This would be dynamically generated in a real app
+      await navigator.clipboard.writeText(proposalLink)
+      // You could add a toast notification here to show success
+      console.log("Proposal link copied to clipboard")
+    } catch (error) {
+      console.error("Failed to copy link to clipboard:", error)
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea")
+      textArea.value = "https://proposal.ia.co/#FMfcg"
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand("copy")
+      document.body.removeChild(textArea)
+    }
   }
 
   const renderStepContent = () => {
@@ -827,9 +975,10 @@ export default function CreateProposalContent() {
                 {/* Send Proposal Button */}
                 <Button
                   onClick={handleSendProposal}
-                  className="w-full bg-black text-white hover:bg-gray-800"
+                  disabled={sendProposalMutation.isPending}
+                  className="w-full bg-black text-white hover:bg-gray-800 disabled:opacity-50"
                 >
-                  Send Proposal
+                  {sendProposalMutation.isPending ? "Sending..." : "Send Proposal"}
                 </Button>
               </div>
 
@@ -849,7 +998,7 @@ export default function CreateProposalContent() {
             <div className="flex items-center justify-between p-4 border-b">
               <div className="flex items-center space-x-4">
                 <button
-                  onClick={() => setShowPdfViewer(false)}
+                  onClick={closePdfViewer}
                   className="flex items-center space-x-2 text-gray-600 hover:text-gray-800"
                 >
                   <ArrowLeft className="h-5 w-5" />
@@ -858,8 +1007,12 @@ export default function CreateProposalContent() {
                 <h2 className="text-xl font-semibold">Proposal Preview</h2>
               </div>
               <div className="flex items-center space-x-2">
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                  Download PDF
+                <button
+                  onClick={handleDownloadPDF}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  disabled={isGeneratingPdf || createProposalMutation.isPending}
+                >
+                  {isGeneratingPdf ? "Generating..." : "Download PDF"}
                 </button>
                 <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" onClick={() => {
                   // Show success modal instead of PDF viewer
@@ -873,29 +1026,37 @@ export default function CreateProposalContent() {
             {/* PDF Viewer */}
             <div className="p-4">
               <div className="bg-gray-100 rounded-lg p-4 min-h-[600px] flex items-center justify-center">
-                <object
-                  data="/resume-sample.pdf"
-                  type="application/pdf"
-                  className="w-full h-[600px] border-0 rounded"
-                  title="Proposal PDF"
-                >
-                  <embed
-                    src="/resume-sample.pdf"
+                {pdfUrl ? (
+                  <object
+                    data={pdfUrl}
                     type="application/pdf"
                     className="w-full h-[600px] border-0 rounded"
-                  />
-                  <div className="flex flex-col items-center justify-center h-full text-gray-600">
-                    <p className="mb-4">Unable to display PDF file.</p>
-                    <a
-                      href="/resume-sample.pdf"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                    >
-                      Download PDF
-                    </a>
+                    title="Proposal PDF"
+                  >
+                    <embed
+                      src={pdfUrl}
+                      type="application/pdf"
+                      className="w-full h-[600px] border-0 rounded"
+                    />
+                    <div className="flex flex-col items-center justify-center h-full text-gray-600">
+                      <p className="mb-4">Unable to display PDF file.</p>
+                      <button
+                        onClick={handleDownloadPDF}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        disabled={isGeneratingPdf || createProposalMutation.isPending}
+                      >
+                        {isGeneratingPdf ? "Generating..." : "Download PDF"}
+                      </button>
+                    </div>
+                  </object>
+                ) : (
+                  <div className="flex items-center justify-center h-96 bg-white border rounded-lg">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                      <p className="text-gray-600">Generating PDF...</p>
+                    </div>
                   </div>
-                </object>
+                )}
               </div>
             </div>
           </div>
@@ -961,9 +1122,10 @@ export default function CreateProposalContent() {
                   <Button
                     onClick={handleSubmit}
                     className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                    disabled={isGeneratingPdf}
                   >
                     <CheckCircle className="h-4 w-4" />
-                    Generate Proposal
+                    {isGeneratingPdf || createProposalMutation.isPending ? "Creating Proposal..." : "Generate Proposal"}
                   </Button>
                 )}
               </div>

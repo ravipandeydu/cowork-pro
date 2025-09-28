@@ -10,6 +10,7 @@ import authRoutes from './routes/auth';
 import leadRoutes from './routes/leads';
 import centerRoutes from './routes/centers';
 import proposalRoutes from './routes/proposals';
+import testRoutes from './routes/test';
 
 // Load environment variables
 dotenv.config();
@@ -34,6 +35,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/centers', centerRoutes);
 app.use('/api/proposals', proposalRoutes);
+app.use('/api/test', testRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -176,8 +176,16 @@ router.post('/', [
   body('selectedSeating.meetingRooms').optional().isInt({ min: 0 }).withMessage('Meeting rooms must be a non-negative integer'),
   body('pricing.baseAmount').isFloat({ min: 0 }).withMessage('Base amount must be a positive number'),
   body('pricing.discountPercentage').optional().isFloat({ min: 0, max: 100 }).withMessage('Discount percentage must be between 0 and 100'),
-  body('pricing.duration').isIn(['monthly', 'quarterly', 'annual']).withMessage('Invalid duration'),
-  body('contractDuration').trim().notEmpty().withMessage('Contract duration is required')
+  body('pricing.taxPercentage').optional().isFloat({ min: 0, max: 100 }).withMessage('Tax percentage must be between 0 and 100'),
+  body('pricing.breakdown').optional().isObject().withMessage('Pricing breakdown must be an object'),
+  body('terms.duration').optional().isIn(['monthly', 'quarterly', 'annual']).withMessage('Invalid terms duration'),
+  body('terms.startDate').optional().isISO8601().withMessage('Start date must be a valid date'),
+  body('terms.endDate').optional().isISO8601().withMessage('End date must be a valid date'),
+  body('terms.paymentTerms').optional().trim().isLength({ min: 1 }).withMessage('Payment terms cannot be empty'),
+  body('terms.cancellationPolicy').optional().trim().isLength({ min: 1 }).withMessage('Cancellation policy cannot be empty'),
+  body('validUntil').optional().isISO8601().withMessage('Valid until must be a valid date'),
+  body('notes').optional().isString().withMessage('Notes must be a string'),
+  body('contractDuration').optional().trim().isLength({ min: 1 }).withMessage('Contract duration cannot be empty')
 ], asyncHandler(async (req, res): Promise<void> => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -221,21 +229,41 @@ router.post('/', [
   // Calculate pricing
   const baseAmount = req.body.pricing.baseAmount;
   const discountPercentage = req.body.pricing.discountPercentage || 0;
+  const taxPercentage = req.body.pricing.taxPercentage || 0;
   const discountAmount = (baseAmount * discountPercentage) / 100;
-  const finalAmount = baseAmount - discountAmount;
+  const taxAmount = (baseAmount * taxPercentage) / 100;
+  const finalAmount = baseAmount - discountAmount + taxAmount;
 
-  // Set expiry date (30 days from creation)
-  const expiryDate = new Date();
-  expiryDate.setDate(expiryDate.getDate() + 30);
+  // Set expiry date (30 days from creation or use provided validUntil)
+  const expiryDate = req.body.validUntil ? new Date(req.body.validUntil) : new Date();
+  if (!req.body.validUntil) {
+    expiryDate.setDate(expiryDate.getDate() + 30);
+  }
 
+  // Transform the request data to match the Proposal schema
   const proposalData = {
-    ...req.body,
-    createdBy: (req.user as any)._id,
+    leadId: req.body.leadId,
+    centerId: req.body.centerId,
+    title: req.body.title,
+    selectedSeating: req.body.selectedSeating,
     pricing: {
-      ...req.body.pricing,
+      baseAmount,
+      discountPercentage,
       discountAmount,
-      finalAmount
+      finalAmount,
+      currency: 'INR',
+      duration: req.body.terms?.duration || 'monthly'
     },
+    contractDuration: req.body.contractDuration || `${req.body.terms?.duration || 'monthly'} contract`,
+    terms: req.body.terms ? [
+      `Duration: ${req.body.terms.duration}`,
+      `Start Date: ${req.body.terms.startDate}`,
+      `End Date: ${req.body.terms.endDate}`,
+      `Payment Terms: ${req.body.terms.paymentTerms}`,
+      `Cancellation Policy: ${req.body.terms.cancellationPolicy}`
+    ].filter(term => !term.includes('undefined')) : [],
+    notes: req.body.notes ? [req.body.notes] : [],
+    createdBy: (req.user as any)._id,
     expiryDate
   };
 
@@ -335,6 +363,107 @@ router.put('/:id', [
     message: 'Proposal updated successfully',
     data: { proposal: updatedProposal }
   });
+}));
+
+// @route   POST /api/proposals/generate-pdf
+// @desc    Generate PDF for a proposal without sending email
+// @access  Private (Sales)
+router.post('/generate-pdf', [
+  authenticate,
+  requireSales,
+  body('client').isObject().withMessage('Client information is required'),
+  body('client.name').trim().notEmpty().withMessage('Client name is required'),
+  body('client.email').isEmail().withMessage('Valid client email is required'),
+  body('hubCentres').isArray({ min: 1 }).withMessage('At least one hub centre is required'),
+  body('proposalNumber').trim().notEmpty().withMessage('Proposal number is required')
+], asyncHandler(async (req, res): Promise<void> => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400).json({ 
+      success: false, 
+      message: 'Validation failed', 
+      errors: errors.array() 
+    });
+    return;
+  }
+
+  try {
+    // Transform the request body to match the expected proposal structure
+    const proposalData = {
+      proposalNumber: req.body.proposalNumber,
+      createdAt: req.body.createdAt || new Date(),
+      expiryDate: req.body.proposal?.validUntil ? new Date(req.body.proposal.validUntil) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+      title: req.body.proposal?.title || 'Coworking Space Proposal',
+      leadId: {
+        name: req.body.client.name,
+        email: req.body.client.email,
+        phone: req.body.client.phone || '',
+        company: req.body.client.company || '',
+        businessType: req.body.client.address || 'Business',
+        businessSize: 'Small'
+      },
+      centerId: {
+        name: req.body.hubCentres[0].name,
+        address: {
+          street: req.body.hubCentres[0].address || '',
+          city: req.body.hubCentres[0].location?.split(',')[0] || '',
+          state: req.body.hubCentres[0].location?.split(',')[1] || '',
+          zipCode: ''
+        },
+        contact: {
+          phone: '+91-80-1234-5678',
+          email: 'info@coworkpro.com'
+        },
+        operatingHours: {
+          weekdays: '9:00 AM - 8:00 PM',
+          weekends: '10:00 AM - 6:00 PM'
+        }
+      },
+      selectedSeating: {
+        hotDesks: 0,
+        dedicatedDesks: 0,
+        privateCabins: 0,
+        meetingRooms: 0
+      },
+      selectedAmenities: [],
+      pricing: {
+        baseAmount: parseFloat(req.body.proposal?.value) || 0,
+        discountPercentage: 0,
+        discountAmount: 0,
+        finalAmount: parseFloat(req.body.proposal?.value) || 0,
+        duration: 'monthly',
+        currency: req.body.proposal?.currency || 'INR'
+      },
+      contractDuration: req.body.offerDetails?.lockIn || 'Monthly',
+      terms: req.body.terms ? [req.body.terms] : [
+        'Payment due within 30 days of invoice date',
+        'Security deposit equivalent to 2 months rent required',
+        'Minimum contract period as specified',
+        'Notice period as per agreement terms'
+      ],
+      createdBy: {
+        name: (req.user as any).name || 'Sales Team',
+        email: (req.user as any).email || 'sales@coworkpro.com'
+      }
+    };
+
+    // Generate PDF
+    const pdfBuffer = await generateProposalPDF(proposalData);
+    
+    // Set response headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="proposal-${req.body.proposalNumber}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    
+    // Send the PDF buffer
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to generate PDF. Please try again.' 
+    });
+  }
 }));
 
 // @route   POST /api/proposals/:id/send

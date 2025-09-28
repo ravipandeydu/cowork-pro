@@ -2,16 +2,29 @@ import { SESClient, SendEmailCommand, SendRawEmailCommand } from '@aws-sdk/clien
 import { ILead } from '../models/Lead';
 import { IProposal } from '../models/Proposal';
 
-// Initialize SES client
-const sesClient = new SESClient({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
+// Function to create SES client with proper credential validation
+const createSESClient = (): SESClient => {
+  const region = process.env.AWS_REGION;
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
 
-const FROM_EMAIL = process.env.SES_FROM_EMAIL || 'noreply@coworkpro.com';
+  if (!region || !accessKeyId || !secretAccessKey) {
+    throw new Error('AWS SES credentials are not properly configured');
+  }
+
+  return new SESClient({
+    region,
+    credentials: {
+      accessKeyId,
+      secretAccessKey,
+    },
+  });
+};
+
+// Function to get FROM_EMAIL dynamically to ensure environment variables are loaded
+const getFromEmail = (): string => {
+  return process.env.SES_FROM_EMAIL || 'noreply@coworkpro.com';
+};
 
 export const sendProposalEmail = async (
   lead: ILead,
@@ -19,6 +32,7 @@ export const sendProposalEmail = async (
   proposal: any
 ): Promise<void> => {
   try {
+    const sesClient = createSESClient();
     const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36)}`;
     
     const emailSubject = `Coworking Space Proposal - ${proposal.proposalNumber}`;
@@ -26,7 +40,7 @@ export const sendProposalEmail = async (
 
     // Create raw email with attachment
     const rawEmail = [
-      `From: CoWork Proposal Pro <${FROM_EMAIL}>`,
+      `From: CoWork Proposal Pro <${getFromEmail()}>`,
       `To: ${lead.email}`,
       `Subject: ${emailSubject}`,
       `MIME-Version: 1.0`,
@@ -64,6 +78,7 @@ export const sendProposalEmail = async (
 
 export const sendWelcomeEmail = async (userEmail: string, userName: string): Promise<void> => {
   try {
+    const sesClient = createSESClient();
     const subject = 'Welcome to CoWork Proposal Pro';
     const htmlBody = `
       <!DOCTYPE html>
@@ -108,7 +123,7 @@ export const sendWelcomeEmail = async (userEmail: string, userName: string): Pro
     `;
 
     const command = new SendEmailCommand({
-      Source: FROM_EMAIL,
+      Source: getFromEmail(),
       Destination: {
         ToAddresses: [userEmail],
       },
@@ -140,6 +155,7 @@ export const sendFollowUpEmail = async (
   followUpType: 'reminder' | 'expiry_warning' | 'thank_you'
 ): Promise<void> => {
   try {
+    const sesClient = createSESClient();
     let subject = '';
     let htmlBody = '';
 
@@ -159,7 +175,7 @@ export const sendFollowUpEmail = async (
     }
 
     const command = new SendEmailCommand({
-      Source: FROM_EMAIL,
+      Source: getFromEmail(),
       Destination: {
         ToAddresses: [lead.email],
       },
@@ -191,6 +207,7 @@ export const sendNotificationEmail = async (
   message: string
 ): Promise<void> => {
   try {
+    const sesClient = createSESClient();
     const htmlBody = `
       <!DOCTYPE html>
       <html>
@@ -222,7 +239,7 @@ export const sendNotificationEmail = async (
     `;
 
     const command = new SendEmailCommand({
-      Source: FROM_EMAIL,
+      Source: getFromEmail(),
       Destination: {
         ToAddresses: [recipientEmail],
       },
