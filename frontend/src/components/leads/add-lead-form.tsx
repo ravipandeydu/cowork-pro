@@ -12,14 +12,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  Building2, 
-  DollarSign, 
-  Calendar, 
-  Users, 
+import {
+  User,
+  Mail,
+  Phone,
+  Building2,
+  DollarSign,
+  Calendar,
+  Users,
   MapPin,
   Plus,
   X
@@ -88,7 +88,7 @@ export default function AddLeadForm({ onSuccess, onCancel }: AddLeadFormProps) {
 
   const onSubmit = async (data: AddLeadFormData) => {
     setIsSubmitting(true)
-    
+
     try {
       const leadData: CreateLeadRequest = {
         name: data.name,
@@ -112,7 +112,7 @@ export default function AddLeadForm({ onSuccess, onCancel }: AddLeadFormProps) {
       }
 
       await createLeadMutation.mutateAsync(leadData)
-      
+
       toast.success("Lead created successfully!")
       reset()
       onSuccess?.()
@@ -131,15 +131,6 @@ export default function AddLeadForm({ onSuccess, onCancel }: AddLeadFormProps) {
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Plus className="h-5 w-5" />
-          Add New Lead
-        </CardTitle>
-        <CardDescription>
-          Enter the lead information to add them to your pipeline
-        </CardDescription>
-      </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Contact Information */}
@@ -148,7 +139,7 @@ export default function AddLeadForm({ onSuccess, onCancel }: AddLeadFormProps) {
               <User className="h-4 w-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold">Contact Information</h3>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name *</Label>

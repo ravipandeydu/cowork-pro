@@ -211,10 +211,10 @@ export default function ProposalsContent() {
     enablePagination: true,
     enableColumnVisibility: false,
     enableTabs: true,
-    tabs: [
-      { value: "leads", label: "Leads" },
-      { value: "proposals", label: "Proposals" },
-    ],
+    // tabs: [
+    //   { value: "leads", label: "Leads" },
+    //   { value: "proposals", label: "Proposals" },
+    // ],
     enableSorting: ["title", "createdAt"],
     actions: [
       {
@@ -260,18 +260,6 @@ export default function ProposalsContent() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="sent">Sent</SelectItem>
-              <SelectItem value="accepted">Accepted</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-            </SelectContent>
-          </Select>
           <Button
             className="flex items-center gap-2"
             onClick={() => router.push("/proposals/create")}

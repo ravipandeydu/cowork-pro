@@ -95,6 +95,7 @@ import {
     TabsList,
     TabsTrigger,
 } from "@/components/ui/tabs"
+import { ChevronDown, ChevronLeft, ChevronUp } from "lucide-react"
 
 // Generic interfaces for dynamic data table
 export interface BaseDataItem {
@@ -444,9 +445,9 @@ export function DataTable<T extends BaseDataItem>({
                                 <TableRow key={headerGroup.id}>
                                     {headerGroup.headers.map((header) => (
                                         <TableHead key={header.id} colSpan={header.colSpan}>
-                                            <SortableHeader 
-                                                header={header} 
-                                                enableSorting={config.enableSorting || false} 
+                                            <SortableHeader
+                                                header={header}
+                                                enableSorting={config.enableSorting || false}
                                             />
                                         </TableHead>
                                     ))}
@@ -487,9 +488,9 @@ export function DataTable<T extends BaseDataItem>({
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => (
                                     <TableHead key={header.id} colSpan={header.colSpan}>
-                                        <SortableHeader 
-                                            header={header} 
-                                            enableSorting={config.enableSorting || false} 
+                                        <SortableHeader
+                                            header={header}
+                                            enableSorting={config.enableSorting || false}
                                         />
                                     </TableHead>
                                 ))}
@@ -679,12 +680,12 @@ export function DataTable<T extends BaseDataItem>({
                 <TableContent />
                 {enablePagination && (
                     <div className="flex items-center justify-between">
-                        {enableSelection && (
+                        {enableSelection ? (
                             <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
                                 {table.getFilteredSelectedRowModel().rows.length} of{" "}
                                 {table.getFilteredRowModel().rows.length} row(s) selected.
                             </div>
-                        )}
+                        ) : <div></div>}
                         <div className="flex w-full items-center gap-8 lg:w-fit">
                             <div className="hidden items-center gap-2 lg:flex">
                                 <Label htmlFor="rows-per-page" className="text-sm font-medium">
@@ -779,7 +780,7 @@ const SortableHeader: React.FC<SortableHeaderProps> = ({ header, enableSorting }
         // If enableSorting is an array, check if this column is included
         return Array.isArray(enableSorting) && enableSorting.includes(columnId) && header.column.getCanSort();
     })();
-    
+
     const sortDirection = header.column.getIsSorted();
 
     const handleSort = () => {
@@ -789,7 +790,7 @@ const SortableHeader: React.FC<SortableHeaderProps> = ({ header, enableSorting }
     };
 
     return (
-        <div 
+        <div
             className={`flex items-center gap-2 ${canSort ? 'cursor-pointer select-none' : ''}`}
             onClick={handleSort}
         >
@@ -809,8 +810,8 @@ const SortableHeader: React.FC<SortableHeaderProps> = ({ header, enableSorting }
                         <IconArrowDown size={16} className="text-primary" />
                     ) : (
                         <div className="flex flex-col opacity-50">
-                            <IconArrowUp size={12} className="mb-[-2px]" />
-                            <IconArrowDown size={12} />
+                            <ChevronUp size={12} className="mb-[-2px]" />
+                            <ChevronDown size={12} />
                         </div>
                     )}
                 </div>

@@ -231,9 +231,9 @@ export default function LeadsContent() {
 
   // Configuration for leads table
   const leadsConfig: DataTableConfig<LeadTableItem> = {
-    enableSelection: true,
+    enableSelection: false,
     enablePagination: true,
-    enableColumnVisibility: true,
+    enableColumnVisibility: false,
     actions: [
       {
         label: "View Details",
@@ -241,11 +241,6 @@ export default function LeadsContent() {
       }
     ],
     actionsAsButtons: true,
-    addButtonLabel: "Add Lead",
-    onAddClick: () => {
-      console.log("Add Lead button clicked!")
-      setIsAddLeadDialogOpen(true)
-    },
     customColumnsLabel: "Customize Lead Columns",
     emptyStateMessage: isLoading ? "Loading leads..." : "No leads found.",
     pageSize: 10,
@@ -277,34 +272,34 @@ export default function LeadsContent() {
         <SectionCards cards={stats} className="grid grid-cols-1 md:grid-cols-2 gap-6" />
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <Input
-            placeholder="Search leads..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
-          />
+      {/* Header with Search and Actions */}
+      <div className="flex items-center justify-between">
+        <div className="text-lg font-bold">Leads</div>
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search leads here..."
+              className="pl-10 w-80"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <Button
+            className="flex items-center gap-2"
+            onClick={() => {
+              console.log("Add Lead button clicked!")
+              setIsAddLeadDialogOpen(true)
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            Add Lead
+          </Button>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="new">New</SelectItem>
-            <SelectItem value="contacted">Contacted</SelectItem>
-            <SelectItem value="qualified">Qualified</SelectItem>
-            <SelectItem value="proposal_sent">Proposal Sent</SelectItem>
-            <SelectItem value="closed_won">Closed Won</SelectItem>
-            <SelectItem value="closed_lost">Closed Lost</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Leads Table */}
-      <div className="rounded-md border">
+      <div>
         <DataTable
           data={filteredLeads}
           columns={leadsColumns}

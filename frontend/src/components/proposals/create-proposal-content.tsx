@@ -159,6 +159,7 @@ export default function CreateProposalContent() {
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState<ProposalFormData>(initialFormData)
   const [customerSearchTerm, setCustomerSearchTerm] = useState("")
+  const [hubCentreSearchTerm, setHubCentreSearchTerm] = useState("")
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [showPdfViewer, setShowPdfViewer] = useState(false)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
@@ -197,6 +198,12 @@ export default function CreateProposalContent() {
     image: center.images && center.images.length > 0 ? center.images[0] : "/api/placeholder/300/200"
   })) : []
 
+  // Filter hub centres based on search term
+  const filteredHubCentres = hubCentres.filter(centre =>
+    centre.name.toLowerCase().includes(hubCentreSearchTerm.toLowerCase()) ||
+    centre.location.toLowerCase().includes(hubCentreSearchTerm.toLowerCase())
+  )
+
   // React Hook Form for offer details (step 3)
   const offerForm = useForm<OfferDetailsFormData>({
     resolver: zodResolver(offerDetailsSchema),
@@ -227,21 +234,18 @@ export default function CreateProposalContent() {
     {
       id: "client",
       title: "Client Information",
-      // description: "Basic client details",
       status: currentStep === 0 ? "active" : currentStep > 0 ? "completed" : "inactive",
       icon: <User className="h-4 w-4" />
     },
     {
       id: "hubcentres",
       title: "Select Hub Centres",
-      description: "Choose hub centres",
       status: currentStep === 1 ? "active" : currentStep > 1 ? "completed" : "inactive",
       icon: <Building2 className="h-4 w-4" />
     },
     {
       id: "offer-details",
       title: "Offer Details",
-      description: "Add offer details",
       status: currentStep === 2 ? "active" : currentStep > 2 ? "completed" : "inactive",
       icon: <FileText className="h-4 w-4" />
     }
@@ -265,7 +269,7 @@ export default function CreateProposalContent() {
       clientCompany: customer.company,
       clientAddress: customer.location || ""
     }))
-    setCustomerSearchTerm("")
+    setCustomerSearchTerm(`${customer.name}`)
   }
 
   // Function to handle hub centre selection
@@ -374,13 +378,13 @@ export default function CreateProposalContent() {
     }
 
     console.log("Proposal submitted:", finalFormData)
-    
+
     // Validate required fields for proposal creation
     if (!finalFormData.selectedCustomer?.id) {
       alert("Please select a customer")
       return
     }
-    
+
     if (!finalFormData.selectedHubCentres || finalFormData.selectedHubCentres.length === 0) {
       alert("Please select at least one coworking center")
       return
@@ -405,24 +409,24 @@ export default function CreateProposalContent() {
           discountPercentage: parseFloat(finalFormData.discountPercentage) || 0,
           taxPercentage: parseFloat(finalFormData.taxPercentage) || 0,
           breakdown: {
-            hotDesks: { 
-              quantity: parseInt(finalFormData.hotDesks) || 0, 
-              rate: parseFloat(finalFormData.hotDeskRate) || 0, 
+            hotDesks: {
+              quantity: parseInt(finalFormData.hotDesks) || 0,
+              rate: parseFloat(finalFormData.hotDeskRate) || 0,
               amount: (parseInt(finalFormData.hotDesks) || 0) * (parseFloat(finalFormData.hotDeskRate) || 0)
             },
-            dedicatedDesks: { 
-              quantity: parseInt(finalFormData.dedicatedDesks) || 0, 
-              rate: parseFloat(finalFormData.dedicatedDeskRate) || 0, 
+            dedicatedDesks: {
+              quantity: parseInt(finalFormData.dedicatedDesks) || 0,
+              rate: parseFloat(finalFormData.dedicatedDeskRate) || 0,
               amount: (parseInt(finalFormData.dedicatedDesks) || 0) * (parseFloat(finalFormData.dedicatedDeskRate) || 0)
             },
-            privateCabins: { 
-              quantity: parseInt(finalFormData.privateCabins) || 0, 
-              rate: parseFloat(finalFormData.privateCabinRate) || 0, 
+            privateCabins: {
+              quantity: parseInt(finalFormData.privateCabins) || 0,
+              rate: parseFloat(finalFormData.privateCabinRate) || 0,
               amount: (parseInt(finalFormData.privateCabins) || 0) * (parseFloat(finalFormData.privateCabinRate) || 0)
             },
-            meetingRooms: { 
-              quantity: parseInt(finalFormData.meetingRooms) || 0, 
-              rate: parseFloat(finalFormData.meetingRoomRate) || 0, 
+            meetingRooms: {
+              quantity: parseInt(finalFormData.meetingRooms) || 0,
+              rate: parseFloat(finalFormData.meetingRoomRate) || 0,
               amount: (parseInt(finalFormData.meetingRooms) || 0) * (parseFloat(finalFormData.meetingRoomRate) || 0)
             },
           },
@@ -500,13 +504,13 @@ export default function CreateProposalContent() {
     }
 
     try {
-      await sendProposalMutation.mutateAsync({ 
+      await sendProposalMutation.mutateAsync({
         id: createdProposalId,
         data: {
           emailMessage: `Dear ${formData.clientName},\n\nPlease find attached our proposal for coworking space services.\n\nBest regards,\nCoworkPro Team`
         }
       })
-      
+
       setShowSuccessModal(false)
       // Optionally redirect to proposals list or show another confirmation
       console.log("Proposal sent successfully to:", formData.clientEmail)
@@ -543,21 +547,25 @@ export default function CreateProposalContent() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                  <Search className="h-4 w-4" />
                   Select Customer/Company *
                 </Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search customers here..."
-                    value={customerSearchTerm}
-                    onChange={(e) => setCustomerSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search customers here..."
+                      value={customerSearchTerm}
+                      onChange={(e) => setCustomerSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Button variant="outline" className="px-4">
+                    Add
+                  </Button>
                 </div>
               </div>
 
-              {/* Customer List */}
+              {/* Customer List - Always visible */}
               <div className="max-h-64 overflow-y-auto border rounded-lg">
                 {filteredCustomers.length > 0 ? (
                   <div className="divide-y">
@@ -594,96 +602,7 @@ export default function CreateProposalContent() {
                   </div>
                 )}
               </div>
-
-              {/* Selected Customer Display */}
-              {formData.selectedCustomer && (
-                <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
-                      {formData.selectedCustomer.avatar}
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-primary">Selected: {formData.selectedCustomer.company}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {formData.selectedCustomer.name} • {formData.selectedCustomer.email}
-                      </p>
-                    </div>
-                    <CheckCircle className="h-5 w-5 text-primary" />
-                  </div>
-                </div>
-              )}
             </div>
-
-            {/* Client Information (Auto-filled from selected customer) */}
-            {formData.selectedCustomer && (
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="text-lg font-medium">Client Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="clientName" className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      Client Name *
-                    </Label>
-                    <Input
-                      id="clientName"
-                      value={formData.clientName}
-                      onChange={(e) => updateFormData("clientName", e.target.value)}
-                      placeholder="Enter client name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="clientCompany" className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4" />
-                      Company
-                    </Label>
-                    <Input
-                      id="clientCompany"
-                      value={formData.clientCompany}
-                      onChange={(e) => updateFormData("clientCompany", e.target.value)}
-                      placeholder="Enter company name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="clientEmail" className="flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      Email *
-                    </Label>
-                    <Input
-                      id="clientEmail"
-                      type="email"
-                      value={formData.clientEmail}
-                      onChange={(e) => updateFormData("clientEmail", e.target.value)}
-                      placeholder="Enter email address"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="clientPhone" className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
-                      Phone
-                    </Label>
-                    <Input
-                      id="clientPhone"
-                      value={formData.clientPhone}
-                      onChange={(e) => updateFormData("clientPhone", e.target.value)}
-                      placeholder="Enter phone number"
-                    />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="clientAddress" className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      Address
-                    </Label>
-                    <Textarea
-                      id="clientAddress"
-                      value={formData.clientAddress}
-                      onChange={(e) => updateFormData("clientAddress", e.target.value)}
-                      placeholder="Enter client address"
-                      rows={3}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )
       case 1:
@@ -692,17 +611,27 @@ export default function CreateProposalContent() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  Select Hub Centres
+                  Select Hub Centres *
                 </Label>
-                <p className="text-sm text-muted-foreground">
-                  Choose hub centres for your proposal (optional)
-                </p>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search hub centres here..."
+                      className="pl-10"
+                      value={hubCentreSearchTerm}
+                      onChange={(e) => setHubCentreSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <Button variant="outline" className="px-4">
+                    Add
+                  </Button>
+                </div>
               </div>
 
               {/* Hub Centres Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {hubCentres.map((hubCentre) => {
+                {filteredHubCentres.map((hubCentre) => {
                   const isSelected = formData.selectedHubCentres.some(centre => centre.id === hubCentre.id)
                   return (
                     <Card
@@ -714,7 +643,7 @@ export default function CreateProposalContent() {
                       <CardContent className="p-4">
                         <div className="space-y-3">
                           {/* Image */}
-                          <div className="relative h-32 bg-muted rounded-lg overflow-hidden">
+                          <div className="relative h-48 bg-muted rounded-lg overflow-hidden">
                             <img
                               src={hubCentre.image}
                               alt={hubCentre.name}
@@ -731,10 +660,6 @@ export default function CreateProposalContent() {
                           <div className="space-y-1">
                             <h3 className="font-semibold text-sm">{hubCentre.name}</h3>
                             <p className="text-xs text-muted-foreground">{hubCentre.location}</p>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              {hubCentre.address}
-                            </p>
                           </div>
                         </div>
                       </CardContent>
@@ -910,7 +835,7 @@ export default function CreateProposalContent() {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="w-full px-4 py-8">
         {showSuccessModal ? (
           // Success Modal UI
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -933,8 +858,8 @@ export default function CreateProposalContent() {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">WorkNest Innovations</h4>
-                    <p className="text-sm text-gray-600">Neha Kapoor</p>
+                    <h4 className="font-medium text-gray-900">{formData.clientCompany || "Company Name"}</h4>
+                    <p className="text-sm text-gray-600">{formData.clientName || "Client Name"}</p>
                   </div>
                 </div>
 
@@ -942,7 +867,7 @@ export default function CreateProposalContent() {
                 <div className="relative mb-4">
                   <Input
                     type="email"
-                    value={formData.clientEmail || "neha.kapoor@gmail.com"}
+                    value={formData.clientEmail || "client@example.com"}
                     readOnly
                     className="pr-10"
                   />
