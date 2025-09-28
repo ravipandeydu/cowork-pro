@@ -345,7 +345,10 @@ export default function ProposalsContent() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Button className="flex items-center gap-2">
+          <Button 
+            className="flex items-center gap-2"
+            onClick={() => router.push("/proposals/create")}
+          >
             <Plus className="h-4 w-4" />
             Create Proposal
           </Button>
