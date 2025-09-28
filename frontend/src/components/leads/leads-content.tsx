@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { ColumnDef } from "@tanstack/react-table"
 import {
   Search,
   Filter,
@@ -22,33 +23,28 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { FaArrowTrendDown, FaArrowTrendUp } from "react-icons/fa6"
 import { CiCirclePlus } from "react-icons/ci"
 import { useRouter } from "next/navigation"
+import { DataTable, BaseDataItem, DataTableConfig } from "@/components/data-table"
+import { SectionCardData, SectionCards } from "../section-cards"
 
-// Dummy data for leads
-const leadsData = [
+// Lead interface extending BaseDataItem
+interface Lead extends BaseDataItem {
+  id: string
+  name: string
+  company: string
+  email: string
+  phone: string
+  location: string
+  status: "New" | "Contacted" | "Qualified" | "Proposal Sent" | "Negotiation" | "Won" | "Lost"
+  source: string
+  value: string
+  date: string
+  lastContact: string
+  avatar: string
+}
+const leadsData: Lead[] = [
   {
     id: "1",
     name: "John Smith",
@@ -163,7 +159,7 @@ const leadsData = [
   }
 ]
 
-const getStatusColor = (status: string) => {
+function getStatusColor(status: string) {
   switch (status) {
     case 'New':
       return 'bg-blue-100 text-blue-800'
@@ -184,6 +180,90 @@ const getStatusColor = (status: string) => {
   }
 }
 
+// Column definitions for leads table
+const leadsColumns: ColumnDef<Lead>[] = [
+  {
+    accessorKey: "avatar",
+    header: "",
+    cell: ({ row }) => (
+      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+        <span className="text-sm font-medium text-white">{row.original.avatar}</span>
+      </div>
+    ),
+    enableSorting: false,
+    size: 50,
+  },
+  {
+    accessorKey: "name",
+    header: "Customer",
+    cell: ({ row }) => (
+      <div>
+        <div className="font-medium">{row.original.name}</div>
+        <div className="text-sm text-muted-foreground">{row.original.company}</div>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "email",
+    header: "Contact",
+    cell: ({ row }) => (
+      <div className="space-y-1">
+        <div className="flex items-center gap-2 text-sm">
+          <Mail className="h-3 w-3 text-muted-foreground" />
+          {row.original.email}
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <Phone className="h-3 w-3 text-muted-foreground" />
+          {row.original.phone}
+        </div>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "location",
+    header: "Location",
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2">
+        <MapPin className="h-4 w-4 text-muted-foreground" />
+        {row.original.location}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "date",
+    header: "Date",
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2">
+        <Calendar className="h-4 w-4 text-muted-foreground" />
+        {row.original.date}
+      </div>
+    ),
+  },
+]
+
+const leadsCards: SectionCardData[] = [
+  {
+    id: "total-leads",
+    title: "Total Leads",
+    value: "4,050",
+    description: "Total Leads",
+    trend: {
+      value: "-20%",
+      isPositive: false,
+    },
+  },
+  {
+    id: "acceptance-rate",
+    title: "Acceptance Rate",
+    value: "89%",
+    description: "Acceptance Rate",
+    trend: {
+      value: "+12.5%",
+      isPositive: true,
+    }
+  },
+]
+
 export default function LeadsContent() {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
@@ -200,155 +280,73 @@ export default function LeadsContent() {
     return matchesSearch && matchesStatus && matchesSource
   })
 
+  // Configuration for leads table
+  const leadsConfig: DataTableConfig<Lead> = {
+    enableDragAndDrop: false,
+    enableSelection: false,
+    enablePagination: true,
+    enableColumnVisibility: false,
+    enableSorting: ["name", "email"], // Only allow sorting on name and email columns
+    initialSorting: {
+      columnKey: "name",
+      direction: "asc"
+    },
+    enableTabs: true,
+    tabs: [
+      { value: "leads", label: "Leads" },
+      { value: "proposals", label: "Proposals" },
+    ],
+    actions: [
+      {
+        label: "View Details",
+        onClick: (lead) => console.log("View lead:", lead),
+      }
+    ],
+    actionsAsButtons: true, // Enable button display mode
+    addButtonLabel: "Add Lead",
+    // onAddClick: () => console.log("Add new lead"),
+    customColumnsLabel: "Customize Lead Columns",
+    emptyStateMessage: "No leads found.",
+    pageSize: 10,
+  }
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardContent className="px-4 py-1">
-            <div className="flex justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Total Leads</p>
-                <div className="text-3xl font-bold">4,050</div>
-              </div>
-              <div>
-                <Badge variant="outline" className="text-xs">
-                  <span className="mr-1"><FaArrowTrendDown /></span>
-                  <span>-20%</span>
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="px-4 py-1">
-            <div className="flex justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Acceptance Rate</p>
-                <div className="text-3xl font-bold">89 %</div>
-              </div>
-              <div>
-                <Badge variant="outline" className="text-xs">
-                  <span className="mr-1"><FaArrowTrendUp /></span>
-                  <span>+12.5%</span>
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div>
+        <SectionCards cards={leadsCards} className="grid grid-cols-1 md:grid-cols-2 gap-6" />
       </div>
 
-      {/* Filters and Actions */}
-      <div className="flex flex-col gap-6">
-        {/* Navigation Tabs */}
-        <div className="flex items-center justify-between">
-          <div className="text-lg font-bold">Leads</div>
-
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search customer/company here..."
-                className="pl-10 w-80"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            <Button className="bg-black hover:bg-gray-800 text-white">
-              <CiCirclePlus className="h-4 w-4 mr-2" />
-              Create Proposal
-            </Button>
+      {/* Header with Search and Actions */}
+      <div className="flex items-center justify-between">
+        <div className="text-lg font-bold">Leads</div>
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search customer/company here..."
+              className="pl-10 w-80"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-        </div>
-        <div className="w-full">
-          <Tabs defaultValue="leads">
-            <TabsList>
-              <TabsTrigger value="leads">Leads</TabsTrigger>
-              <TabsTrigger 
-                value="proposals" 
-                onClick={() => router.push('/proposals')}
-              >
-                Proposals
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="leads">
-              {/* Leads Table */}
-              <Card className="p-0">
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-12"></TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Contact</TableHead>
-                        <TableHead>Location</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredLeads.map((lead) => (
-                        <TableRow key={lead.id}>
-                          <TableCell>
-                            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                              <span className="text-sm font-medium text-white">{lead.avatar}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{lead.name}</div>
-                              <div className="text-sm text-muted-foreground">{lead.company}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2 text-sm">
-                                <Mail className="h-3 w-3 text-muted-foreground" />
-                                {lead.email}
-                              </div>
-                              <div className="flex items-center gap-2 text-sm">
-                                <Phone className="h-3 w-3 text-muted-foreground" />
-                                {lead.phone}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <MapPin className="h-4 w-4 text-muted-foreground" />
-                              {lead.location}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-muted-foreground" />
-                              {lead.date}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Button variant="outline" size="sm">
-                              Action
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="password">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Password</CardTitle>
-
-                </CardHeader>
-              </Card>
-            </TabsContent>
-          </Tabs>
+          <Button className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Add Lead
+          </Button>
         </div>
       </div>
+
+      {/* Dynamic Data Table */}
+      <DataTable
+        data={filteredLeads}
+        columns={leadsColumns}
+        config={leadsConfig}
+        onDataChange={(updatedData) => {
+          console.log("Leads data updated:", updatedData)
+          // Handle data updates here
+        }}
+      />
     </div>
   )
 }

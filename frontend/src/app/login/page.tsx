@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Building2, Eye, EyeOff, ArrowLeft, Mail, Lock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useAuthStore } from "@/stores/auth";
+import { RedirectIfAuthenticated } from "@/components/auth/redirect-if-authenticated";
+import { toast } from "sonner";
 
 // Login form validation schema
 const loginSchema = z.object({
@@ -21,14 +25,16 @@ const loginSchema = z.object({
   password: z
     .string()
     .min(1, "Password is required")
-    .min(8, "Password must be at least 8 characters"),
+    .min(6, "Password must be at least 6 characters"),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  
+  const { login, isLoading, error, isAuthenticated, clearError } = useAuthStore();
 
   const {
     register,
@@ -38,172 +44,154 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/dashboard");
+    }
+  }, [isAuthenticated, router]);
+
+  // Clear error when component mounts
+  useEffect(() => {
+    clearError();
+  }, [clearError]);
+
+  // Show error toast
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
+
   const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true);
     try {
-      // TODO: Implement actual login logic
-      console.log("Login data:", data);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      // For now, redirect to dashboard
-      window.location.href = "/dashboard";
+      await login(data.email, data.password);
+      toast.success("Login successful!");
+      router.push("/dashboard");
     } catch (error) {
+      // Error is already handled by the store and toast
       console.error("Login error:", error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-            <ArrowLeft className="h-5 w-5 text-gray-600" />
-            <Building2 className="h-8 w-8 text-blue-600" />
-            <span className="text-2xl font-bold text-gray-900">CoWork Proposal Pro</span>
-          </Link>
-          <div className="text-sm text-gray-600">
-            Don't have an account?{" "}
-            <Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium">
-              Sign up
-            </Link>
+    <RedirectIfAuthenticated>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-8">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <div className="flex justify-center">
+            <div className="bg-blue-600 p-3 rounded-xl">
+              <Building2 className="h-8 w-8 text-white" />
+            </div>
           </div>
+          <h1 className="text-3xl font-bold text-gray-900">Welcome back</h1>
+          <p className="text-gray-600">Sign in to your CoWork Pro account</p>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <div className="flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
-          {/* Welcome Section */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-            <p className="text-gray-600">Sign in to your CoWork Proposal Pro account</p>
-          </div>
-
-          {/* User Roles Info */}
-          <div className="mb-6">
-            <div className="flex items-center justify-center mb-3">
-              <Users className="h-4 w-4 text-blue-600 mr-2" />
-              <span className="text-sm font-medium text-gray-700">Supported User Roles</span>
-            </div>
-            <div className="flex flex-wrap gap-2 justify-center">
-              <Badge variant="secondary" className="text-xs">Sales Executive</Badge>
-              <Badge variant="secondary" className="text-xs">Sales Manager</Badge>
-              <Badge variant="secondary" className="text-xs">Business Dev</Badge>
-              <Badge variant="secondary" className="text-xs">Operations</Badge>
-              <Badge variant="secondary" className="text-xs">Finance</Badge>
-            </div>
-          </div>
-
-          {/* Login Form */}
-          <Card className="shadow-lg border-0">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl text-center">Sign In</CardTitle>
-              <CardDescription className="text-center">
-                Enter your credentials to access your dashboard
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                {/* Email Field */}
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="Enter your email"
-                      className="pl-10"
-                      {...register("email")}
-                    />
-                  </div>
-                  {errors.email && (
-                    <p className="text-sm text-red-600">{errors.email.message}</p>
-                  )}
+        {/* Login Form */}
+        <Card className="border-0 shadow-xl">
+          <CardHeader className="space-y-1 pb-6">
+            <CardTitle className="text-2xl text-center">Sign in</CardTitle>
+            <CardDescription className="text-center">
+              Enter your credentials to access your account
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {/* Email Field */}
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">
+                  Email address
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    className="pl-10 h-12"
+                    {...register("email")}
+                  />
                 </div>
+                {errors.email && (
+                  <p className="text-sm text-red-600">{errors.email.message}</p>
+                )}
+              </div>
 
-                {/* Password Field */}
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
-                      className="pl-10 pr-10"
-                      {...register("password")}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                  {errors.password && (
-                    <p className="text-sm text-red-600">{errors.password.message}</p>
-                  )}
-                </div>
-
-                {/* Remember Me & Forgot Password */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      id="remember"
-                      type="checkbox"
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <Label htmlFor="remember" className="text-sm text-gray-600">
-                      Remember me
-                    </Label>
-                  </div>
-                  <Link
-                    href="/forgot-password"
-                    className="text-sm text-blue-600 hover:text-blue-700"
+              {/* Password Field */}
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium">
+                  Password
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    className="pl-10 pr-10 h-12"
+                    {...register("password")}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
                   >
-                    Forgot password?
-                  </Link>
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
                 </div>
+                {errors.password && (
+                  <p className="text-sm text-red-600">{errors.password.message}</p>
+                )}
+              </div>
 
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Signing in..." : "Sign In"}
-                </Button>
-              </form>
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                className="w-full h-12 text-base font-medium"
+                disabled={isLoading}
+              >
+                {isLoading ? "Signing in..." : "Sign in"}
+              </Button>
+            </form>
 
-              {/* Demo Credentials */}
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                <h4 className="text-sm font-medium text-blue-900 mb-2">Demo Credentials</h4>
-                <div className="text-xs text-blue-700 space-y-1">
-                  <div><strong>Sales Executive:</strong> sales@coworkpro.com / password123</div>
-                  <div><strong>Sales Manager:</strong> manager@coworkpro.com / password123</div>
-                  <div><strong>Operations:</strong> ops@coworkpro.com / password123</div>
+            {/* Demo Credentials */}
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Users className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-900">Demo Credentials</span>
+              </div>
+              <div className="space-y-1 text-xs text-blue-700">
+                <div className="flex justify-between">
+                  <span>Admin:</span>
+                  <Badge variant="secondary" className="text-xs">admin@example.com / admin123</Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span>User:</span>
+                  <Badge variant="secondary" className="text-xs">user@example.com / user123</Badge>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Security Notice */}
-          <div className="mt-6 text-center">
-            <p className="text-xs text-gray-500">
-              Protected by enterprise-grade security with role-based access control
-            </p>
-          </div>
+        {/* Footer */}
+        <div className="text-center space-y-4">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to home
+          </Link>
+        </div>
         </div>
       </div>
-    </div>
+    </RedirectIfAuthenticated>
   );
 }
