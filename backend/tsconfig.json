@@ -32,10 +32,9 @@
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    // 👇 Add this to fix `process`, `console`, Node globals
     "types": [
       "node"
-    ]
+    ] // 👈 must match installed @types/node
   },
   "include": [
     "src/**/*"
