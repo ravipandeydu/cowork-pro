@@ -5,10 +5,11 @@
   "main": "dist/server.js",
   "scripts": {
     "start": "node dist/server.js",
-    "dev": "nodemon src/server.ts",
+    "dev": "nodemon --exec ts-node src/server.ts",
     "build": "tsc",
     "test": "jest",
-    "create-admin": "ts-node src/scripts/createAdmin.ts"
+    "create-admin": "ts-node -r tsconfig-paths/register src/scripts/createAdmin.ts",
+    "lint": "tsc --noEmit"
   },
   "keywords": [
     "coworking",
@@ -19,7 +20,6 @@
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-ses": "^3.896.0",
-    "aws-sdk": "^2.1500.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
