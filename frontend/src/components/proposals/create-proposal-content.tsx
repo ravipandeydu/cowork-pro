@@ -63,7 +63,7 @@ interface Customer {
 
 // Remove the mock customers array as we're now using real lead data
 
-interface ProposalFormData {
+export interface ProposalFormData {
   // Selected Customer
   selectedCustomer: Customer | null
 
@@ -275,7 +275,7 @@ export default function CreateProposalContent() {
         clientAddress: customer.location || ""
       }
     })
-    
+
     // Update search term based on selection
     setCustomerSearchTerm(prev => {
       if (formData.selectedCustomer?.id === customer.id) {
