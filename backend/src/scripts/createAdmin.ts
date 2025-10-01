@@ -4,7 +4,7 @@ import User from '../models/User';
 import { connectDB } from '../config/database';
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ override: true });
 
 async function createInitialAdmin() {
   try {
@@ -38,6 +38,9 @@ async function createInitialAdmin() {
 
   } catch (error) {
     console.error('❌ Error creating admin user:', error);
+    console.error('ℹ️  Check your MONGODB_URI. If using Atlas, it should look like:');
+    console.error('    mongodb+srv://<username>:<password>@<cluster-domain>/<database>?retryWrites=true&w=majority');
+    console.error('    Ensure the cluster domain has no illegal characters (e.g., \'#\').');
   } finally {
     await mongoose.connection.close();
     process.exit(0);
