@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -152,11 +152,55 @@ const initialFormData: ProposalFormData = {
   notes: ""
 }
 
-export default function CreateProposalContent() {
+interface CreateProposalContentProps {
+  initialCustomer?: Customer
+  onSuccess?: (proposalId: string) => void
+}
+
+export default function CreateProposalContent({ initialCustomer, onSuccess }: CreateProposalContentProps) {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
-  const [formData, setFormData] = useState<ProposalFormData>(initialFormData)
-  const [customerSearchTerm, setCustomerSearchTerm] = useState("")
+  const searchParams = useSearchParams()
+  const [formData, setFormData] = useState<ProposalFormData>(() => {
+    if (searchParams.get("selected") === "true") {
+      const customer: Customer = {
+        id: searchParams.get("leadId") || "",
+        name: searchParams.get("name") || "",
+        email: searchParams.get("email") || "",
+        phone: searchParams.get("phone") || "",
+        company: searchParams.get("company") || "",
+        location: `${searchParams.get("businessType") || ""} - ${searchParams.get("businessSize") || ""}`,
+        avatar: (searchParams.get("name") || "").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2),
+        businessType: searchParams.get("businessType") || "",
+      }
+      return {
+        ...initialFormData,
+        selectedCustomer: customer,
+        clientName: customer.name,
+        clientEmail: customer.email,
+        clientPhone: customer.phone,
+        clientCompany: customer.company,
+        clientAddress: customer.location
+      }
+    }
+    return initialCustomer
+      ? {
+          ...initialFormData,
+          selectedCustomer: initialCustomer,
+          clientName: initialCustomer.name || "",
+          clientEmail: initialCustomer.email || "",
+          clientPhone: initialCustomer.phone || "",
+          clientCompany: initialCustomer.company || "",
+          clientAddress: initialCustomer.location || ""
+        }
+      : initialFormData
+  })
+  const [customerSearchTerm, setCustomerSearchTerm] = useState(() => {
+    if (searchParams.get("selected") === "true") {
+      return searchParams.get("name") || ""
+    }
+    return initialCustomer?.name || ""
+  })
   const [hubCentreSearchTerm, setHubCentreSearchTerm] = useState("")
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [showPdfViewer, setShowPdfViewer] = useState(false)
@@ -377,6 +421,12 @@ export default function CreateProposalContent() {
           leadId: finalFormData.selectedCustomer.id,
           centerIds: finalFormData.selectedHubCentres.map(center => center.id), // Send array of center IDs
           title: `Multi-Center Proposal for ${finalFormData.clientCompany || finalFormData.selectedCustomer.company}`,
+          // Add onSuccess callback handling
+          onSuccess: (proposalId) => {
+            if (onSuccess) {
+              onSuccess(proposalId)
+            }
+          },
         selectedSeating: {
           hotDesks: parseInt(finalFormData.hotDesks) || 0,
           dedicatedDesks: parseInt(finalFormData.dedicatedDesks) || 0,

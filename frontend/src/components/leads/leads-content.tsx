@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { ColumnDef } from "@tanstack/react-table"
 import {
   Search,
@@ -9,6 +10,7 @@ import {
   Mail,
   Calendar,
   Building2,
+  FileText
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,12 +20,7 @@ import { SectionCards } from "../section-cards"
 import { useLeads } from "@/hooks/useLeads"
 import { Lead } from "@/services/leads"
 import AddLeadForm from "./add-lead-form"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog"
 
 // Extend Lead interface for DataTable compatibility
 interface LeadTableItem extends Lead, BaseDataItem {
@@ -130,8 +127,24 @@ const leadsColumns: ColumnDef<LeadTableItem>[] = [
 ]
 
 export default function LeadsContent() {
+  const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
   const [isAddLeadDialogOpen, setIsAddLeadDialogOpen] = useState(false)
+
+  const handleCreateProposal = (lead: Lead) => {
+    const queryParams = new URLSearchParams({
+      leadId: lead._id,
+      name: lead.name,
+      email: lead.email,
+      phone: lead.phone,
+      company: lead.company,
+      businessType: lead.businessType || "",
+      businessSize: lead.businessSize || "",
+      selected: "true"
+    }).toString()
+
+    router.push(`/proposals/create?${queryParams}`)
+  }
 
   // Fetch real data from API
   const { data: leadsData, isLoading, error, refetch } = useLeads()
@@ -221,6 +234,10 @@ export default function LeadsContent() {
       {
         label: "View Details",
         onClick: (lead) => console.log("View lead:", lead),
+      },
+      {
+        label: "Create Proposal",
+        onClick: (lead) => handleCreateProposal(lead),
       }
     ],
     actionsAsButtons: true,
@@ -290,7 +307,6 @@ export default function LeadsContent() {
           config={leadsConfig}
         />
       </div>
-
       {/* Add Lead Dialog */}
       <Dialog open={isAddLeadDialogOpen} onOpenChange={setIsAddLeadDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
