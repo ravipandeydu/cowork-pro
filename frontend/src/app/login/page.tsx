@@ -75,41 +75,36 @@ export default function LoginPage() {
 
   return (
     <RedirectIfAuthenticated>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md space-y-8">
-          {/* Header */}
-          <div className="text-center space-y-2">
-            <div className="flex justify-center">
-              <div className="bg-blue-600 p-3 rounded-xl">
-                <Building2 className="h-8 w-8 text-white" />
-              </div>
+      <div className="min-h-screen flex p-8">
+        {/* Left Section - Login Form */}
+        <div className="w-full lg:w-1/2 px-8 flex items-center justify-center">
+          <div className="w-full max-w-md">
+            {/* Logo and Company Name */}
+            <div className="flex items-center gap-3 mb-12">
+              <img src="/images/ia_logo.png" alt="India Accelerator" className="h-8 w-auto" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">Welcome back</h1>
-            <p className="text-gray-600">Sign in to your CoWork Pro account</p>
-          </div>
 
-          {/* Login Form */}
-          <Card className="border-0 shadow-xl">
-            <CardHeader className="space-y-1 pb-6">
-              <CardTitle className="text-2xl text-center">Sign in</CardTitle>
-              <CardDescription className="text-center">
-                Enter your credentials to access your account
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div>
+              {/* Login Header */}
+              <div className="space-y-2 mb-8">
+                <h1 className="text-2xl font-semibold text-gray-900">Login to your account</h1>
+                <p className="text-gray-600">Enter your email below to login to your account</p>
+              </div>
+
+              {/* Login Form */}
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 {/* Email Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium">
-                    Email address
+                  <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                    Email
                   </Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                     <Input
                       id="email"
                       type="email"
-                      placeholder="Enter your email"
-                      className="pl-10 h-12"
+                      placeholder="Enter your email ID"
+                      className="pl-10 h-12 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       {...register("email")}
                     />
                   </div>
@@ -120,16 +115,21 @@ export default function LoginPage() {
 
                 {/* Password Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-medium">
-                    Password
-                  </Label>
+                  <div className="flex justify-between">
+                    <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                      Password
+                    </Label>
+                    <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-800">
+                      Forgot password?
+                    </Link>
+                  </div>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
-                      className="pl-10 pr-10 h-12"
+                      placeholder="••••••••••"
+                      className="pl-10 pr-10 h-12 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       {...register("password")}
                     />
                     <button
@@ -138,9 +138,9 @@ export default function LoginPage() {
                       className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
                     >
                       {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
+                        <EyeOff className="h-5 w-5" />
                       ) : (
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-5 w-5" />
                       )}
                     </button>
                   </div>
@@ -152,25 +152,19 @@ export default function LoginPage() {
                 {/* Submit Button */}
                 <Button
                   type="submit"
-                  className="w-full h-12 text-base font-medium"
+                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg"
                   disabled={isLoading}
                 >
-                  {isLoading ? "Signing in..." : "Sign in"}
+                  {isLoading ? "Signing in..." : "Login"}
                 </Button>
               </form>
-            </CardContent>
-          </Card>
-
-          {/* Footer */}
-          <div className="text-center space-y-4">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to home
-            </Link>
+            </div>
           </div>
+        </div>
+
+        {/* Right Section - Image */}
+        <div className="hidden lg:block lg:w-1/2">
+          <div className="h-full w-full bg-[url('/images/login_image.jpg')] bg-cover bg-center bg-no-repeat rounded-xl" />
         </div>
       </div>
     </RedirectIfAuthenticated>

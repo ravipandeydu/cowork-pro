@@ -19,7 +19,7 @@ export interface Proposal {
       meetingRooms: number;
     };
   };
-  centerId: {
+  centerIds: Array<{
     _id: string;
     name: string;
     address: {
@@ -32,7 +32,7 @@ export interface Proposal {
     capacity: any;
     amenities: string[];
     pricing: any;
-  };
+  }>;
   selectedSeating: {
     hotDesks: number;
     dedicatedDesks: number;
@@ -77,7 +77,7 @@ export interface Proposal {
 
 export interface CreateProposalRequest {
   leadId: string;
-  centerId: string;
+  centerIds: string[];
   title: string;
   selectedSeating: {
     hotDesks: number;

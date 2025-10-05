@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IProposal extends Document {
   // Reference Information
   leadId: mongoose.Types.ObjectId;
-  centerId: mongoose.Types.ObjectId;
+  centerIds: mongoose.Types.ObjectId[];
   createdBy: mongoose.Types.ObjectId;
   
   // Proposal Details
@@ -74,11 +74,11 @@ const proposalSchema = new Schema<IProposal>({
     ref: 'Lead',
     required: [true, 'Lead ID is required']
   },
-  centerId: {
+  centerIds: [{
     type: Schema.Types.ObjectId,
     ref: 'Center',
-    required: [true, 'Center ID is required']
-  },
+    required: [true, 'At least one Center ID is required']
+  }],
   createdBy: {
     type: Schema.Types.ObjectId,
     ref: 'User',
@@ -150,7 +150,7 @@ const proposalSchema = new Schema<IProposal>({
 
 // Indexes for better query performance
 proposalSchema.index({ leadId: 1 });
-proposalSchema.index({ centerId: 1 });
+proposalSchema.index({ centerIds: 1 });
 proposalSchema.index({ createdBy: 1 });
 proposalSchema.index({ status: 1 });
 proposalSchema.index({ createdAt: -1 });

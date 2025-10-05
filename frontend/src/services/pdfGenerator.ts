@@ -21,7 +21,14 @@ export class PDFGeneratorService {
         },
         
         // Selected Hub Centres
-        hubCentres: formData.selectedHubCentres,
+        hubCentres: formData.selectedHubCentres.map(centre => ({
+          _id: centre._id,
+          name: centre.name,
+          address: centre.address,
+          capacity: centre.capacity,
+          amenities: centre.amenities,
+          pricing: centre.pricing
+        })),
         
         // Offer Details
         offerDetails: {
@@ -87,7 +94,8 @@ export class PDFGeneratorService {
   async generatePDFUrl(formData: ProposalFormData): Promise<string> {
     try {
       const blob = await this.generatePDFFromFormData(formData);
-      return URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob);
+      return url;
     } catch (error) {
       console.error('Error generating PDF URL:', error);
       throw error;
@@ -99,12 +107,15 @@ export class PDFGeneratorService {
    */
   async downloadPDF(formData: ProposalFormData, filename?: string): Promise<void> {
     try {
+      // Generate PDF with multiple centers support
       const blob = await this.generatePDFFromFormData(formData);
       const url = URL.createObjectURL(blob);
       
       const link = document.createElement('a');
       link.href = url;
-      link.download = filename || `proposal-${Date.now()}.pdf`;
+      // Use first center name in filename if multiple centers
+      const centerName = formData.selectedHubCentres[0]?.name?.replace(/\s+/g, '-').toLowerCase() || 'multiple-centers';
+      link.download = filename || `proposal-${centerName}-${Date.now()}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

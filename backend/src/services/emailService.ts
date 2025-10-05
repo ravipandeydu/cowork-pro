@@ -1,6 +1,7 @@
 import { SESClient, SendEmailCommand, SendRawEmailCommand } from '@aws-sdk/client-ses';
 import { ILead } from '../models/Lead';
 import { IProposal } from '../models/Proposal';
+import Center, { ICenter } from '../models/Center';
 
 // Function to create SES client with proper credential validation
 const createSESClient = (): SESClient => {
@@ -266,62 +267,127 @@ export const sendNotificationEmail = async (
 };
 
 // Helper functions for generating email bodies
-const generateProposalEmailBody = (lead: ILead, proposal: any): string => {
+const generateProposalEmailBody = (lead: ILead, proposal: IProposal): string => {
+  // Get the first center for basic information
+  const firstCenter = proposal.centerIds[0] as unknown as ICenter;
+  const creator = proposal.createdBy as unknown as { name: string; email: string };
+
   return `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="UTF-8">
-      <title>Your Coworking Space Proposal</title>
+      <title>IA Spaces Proposal</title>
       <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #2563eb; color: white; padding: 20px; text-align: center; }
-        .content { padding: 20px; background-color: #f9fafb; }
-        .footer { padding: 20px; text-align: center; color: #6b7280; font-size: 12px; }
-        .highlight { background-color: #dbeafe; padding: 15px; border-radius: 5px; margin: 15px 0; }
-        .button { display: inline-block; padding: 12px 24px; background-color: #059669; color: white; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { color: #2563eb; padding: 20px 0; }
+        .content { padding: 20px 0; }
+        .section { margin: 20px 0; }
+        .section-title { color: #2563eb; font-weight: bold; margin: 15px 0; }
+        ul { padding-left: 20px; }
+        li { margin: 5px 0; }
+        .highlight { background-color: #f8fafc; padding: 15px; border-left: 4px solid #2563eb; margin: 15px 0; }
+        .footer { padding: 20px 0; color: #6b7280; }
+        .brand-links { margin: 15px 0; }
+        .brand-links a { color: #2563eb; text-decoration: none; }
+        .brand-links a:hover { text-decoration: underline; }
       </style>
     </head>
     <body>
       <div class="container">
         <div class="header">
-          <h1>Your Coworking Space Proposal</h1>
-          <p>Proposal #${proposal.proposalNumber}</p>
-        </div>
-        <div class="content">
           <h2>Dear ${lead.name},</h2>
-          <p>Thank you for your interest in our coworking space. We're excited to present you with a customized proposal that meets your business needs.</p>
-          
-          <div class="highlight">
-            <h3>Proposal Summary:</h3>
-            <p><strong>Center:</strong> ${proposal.centerId.name}</p>
-            <p><strong>Total Amount:</strong> ₹${proposal.pricing.finalAmount.toLocaleString()} (${proposal.pricing.duration})</p>
-            <p><strong>Contract Duration:</strong> ${proposal.contractDuration}</p>
-            <p><strong>Valid Until:</strong> ${new Date(proposal.expiryDate).toLocaleDateString()}</p>
+          <p>Greetings from IA Spaces!</p>
+        </div>
+        
+        <div class="content">
+          <p>Thank you for your visit at our <strong>${firstCenter.name}</strong> center and for expressing your interest in acquiring an office space at our <strong>IA Spaces</strong>. As discussed with ${creator.name}, please refer to the commercials and proposed center with the offered workspace solution below.</p>
+
+          <div class="section">
+            <h3 class="section-title">About us:</h3>
+            <p>IA Spaces is India's premier startup factory, empowering startups through a unique blend of infrastructure, mentorship, and funding support. Our sub-brands include:</p>
+            <div class="brand-links">
+              <ul>
+                <li><a href="https://indiaaccelerator.co/">India Accelerator</a> – Supports early-stage startups with funding, mentorship, and structured growth.</li>
+                <li><a href="https://finvolve.co/">Finvolve</a> – A multi-thesis fund supporting startups from pre-seed to pre-IPO through capital, strategic support, and ecosystem access.</li>
+                <li><a href="https://iaspaces.co/">IA Spaces</a> – Offers co-working hubs across 10+ cities.</li>
+                <li><a href="https://third-place.in/">Third Place</a> – India's premium business café.</li>
+              </ul>
+            </div>
+            <p>We are proud recipients of the <strong>"Best Accelerator of the Country"</strong> award from Startup India (2022), a testament to our continued commitment to nurturing innovation.</p>
           </div>
 
-          <p>Please find the detailed proposal attached to this email. The proposal includes:</p>
-          <ul>
-            <li>Complete center information and amenities</li>
-            <li>Customized seating arrangements</li>
-            <li>Transparent pricing breakdown</li>
-            <li>Terms and conditions</li>
-          </ul>
+          <div class="section">
+            <h3 class="section-title">Requirements:</h3>
+            ${proposal.selectedSeating ? `
+              <div class="highlight">
+                <h4>${firstCenter.name}</h4>
+                <ul>
+                  ${proposal.selectedSeating.hotDesks > 0 ? `<li>Hot Desks - ${proposal.selectedSeating.hotDesks} Nos.</li>` : ''}
+                  ${proposal.selectedSeating.dedicatedDesks > 0 ? `<li>Dedicated Desks - ${proposal.selectedSeating.dedicatedDesks} Nos.</li>` : ''}
+                  ${proposal.selectedSeating.privateCabins > 0 ? `<li>Private Cabins - ${proposal.selectedSeating.privateCabins} Nos.</li>` : ''}
+                  ${proposal.selectedSeating.meetingRooms > 0 ? `<li>Meeting Rooms - ${proposal.selectedSeating.meetingRooms} Nos.</li>` : ''}
+                </ul>
+              </div>
+            ` : ''}
+          </div>
 
-          <p>We believe this proposal offers excellent value for your ${lead.company} and would love to discuss it further with you.</p>
+          <div class="section">
+            <h3 class="section-title">Standard Services Included:</h3>
+            <ul>
+              ${proposal.additionalServices?.map(service => `<li>${service}</li>`).join('') || ''}
+            </ul>
+          </div>
+
+          <div class="section">
+            <h3 class="section-title">Key Commercials:</h3>
+            ${(proposal.centerIds as unknown as ICenter[]).map(center => `
+              <div class="highlight">
+                <h4>${center.name}</h4>
+                <p><strong>Operating Hours:</strong> Weekdays ${center.operatingHours.weekdays.open} - ${center.operatingHours.weekdays.close}</p>
+                ${proposal.selectedSeating.hotDesks > 0 ? `
+                  <p><strong>Hot Desk Rate:</strong> ₹${center.pricing.hotDesk.monthly.toLocaleString()}/seat/month plus taxes</p>
+                ` : ''}
+                ${proposal.selectedSeating.dedicatedDesks > 0 ? `
+                  <p><strong>Dedicated Desk Rate:</strong> ₹${center.pricing.dedicatedDesk.monthly.toLocaleString()}/seat/month plus taxes</p>
+                ` : ''}
+                ${proposal.selectedSeating.privateCabins > 0 ? `
+                  <p><strong>Private Cabin Rate:</strong> ₹${center.pricing.privateCabin.monthly.toLocaleString()}/cabin/month plus taxes</p>
+                ` : ''}
+                <p><strong>Total Amount:</strong> ₹${proposal.pricing.finalAmount.toLocaleString()}/month plus taxes</p>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="section">
+            <h3 class="section-title">Required KYC Documents:</h3>
+            <ul>
+              <li>Certificate of Incorporation</li>
+              <li>GST and PAN card of the Company</li>
+              <li>AADHAAR and PAN card of All Directors</li>
+              <li>PAN and AADHAAR card of Sign Authorised Person Signatory</li>
+              <li>Board Resolution</li>
+              <li>Point of Contact (Name/Email ID/Contact No./Address ID proof)</li>
+              <li>Emergency Contact (Name/Email ID/Contact No./Address ID proof)</li>
+              <li>Team Members (Name/Email ID/Contact No./Address ID proof)</li>
+              <li>Accounts POC (Name/Email ID/Contact No./Address ID Proof)</li>
+              <li>Logo of the Company</li>
+            </ul>
+          </div>
+
+          <p>Should you have any queries or require further clarifications, please do not hesitate to reach out to us.</p>
           
-          <p>If you have any questions or would like to schedule a visit to our center, please don't hesitate to contact us.</p>
-          
-          <a href="tel:${proposal.centerId.contact.phone}" class="button">Call Us</a>
-          <a href="mailto:${proposal.createdBy.email}" class="button">Reply to This Proposal</a>
+          <p>We look forward to welcoming your team to India Accelerator and supporting your growth journey.</p>
         </div>
+
         <div class="footer">
           <p>Best regards,<br>
-          ${proposal.createdBy.name}<br>
-          CoWork Proposal Pro<br>
-          ${proposal.createdBy.email}</p>
-          <p>This proposal is valid until ${new Date(proposal.expiryDate).toLocaleDateString()}.</p>
+          ${creator.name}<br>
+          IA Spaces<br>
+          ${creator.email}<br>
+          ${firstCenter.contact.phone}</p>
+          <p>This proposal is valid until ${proposal.expiryDate ? new Date(proposal.expiryDate).toLocaleDateString() : 'N/A'}.</p>
         </div>
       </div>
     </body>

@@ -290,21 +290,19 @@ export default function CreateProposalContent() {
     setFormData(prev => {
       const isSelected = prev.selectedHubCentres.some(centre => centre.id === hubCentre.id)
       if (isSelected) {
-        // When deselecting, clear the search term if this was the only selected center
+        // When deselecting, remove the center from the selection
         const remainingCentres = prev.selectedHubCentres.filter(centre => centre.id !== hubCentre.id)
-        if (remainingCentres.length === 0) {
+        // Update search term only if it matches the deselected center
+        if (hubCentreSearchTerm === hubCentre.name) {
           setHubCentreSearchTerm("")
-        } else {
-          // Set search term to the first remaining selected center
-          setHubCentreSearchTerm(remainingCentres[0].name)
         }
         return {
           ...prev,
           selectedHubCentres: remainingCentres
         }
       } else {
-        // When selecting, update the search term to show the selected center
-        setHubCentreSearchTerm(hubCentre.name)
+        // When selecting, add the center to the selection
+        // Keep the search term as is to allow for multiple selections
         return {
           ...prev,
           selectedHubCentres: [...prev.selectedHubCentres, hubCentre]
@@ -372,13 +370,13 @@ export default function CreateProposalContent() {
     }
 
     // Create proposal in backend first
-    setIsGeneratingPdf(true)
-    try {
-      // Prepare proposal data according to CreateProposalRequest interface
-      const proposalData = {
-        leadId: finalFormData.selectedCustomer.id,
-        centerId: finalFormData.selectedHubCentres[0].id, // Use first selected center
-        title: `Proposal for ${finalFormData.clientCompany || finalFormData.selectedCustomer.company}`,
+      setIsGeneratingPdf(true)
+      try {
+        // Prepare proposal data according to CreateProposalRequest interface
+        const proposalData = {
+          leadId: finalFormData.selectedCustomer.id,
+          centerIds: finalFormData.selectedHubCentres.map(center => center.id), // Send array of center IDs
+          title: `Multi-Center Proposal for ${finalFormData.clientCompany || finalFormData.selectedCustomer.company}`,
         selectedSeating: {
           hotDesks: parseInt(finalFormData.hotDesks) || 0,
           dedicatedDesks: parseInt(finalFormData.dedicatedDesks) || 0,
@@ -592,7 +590,7 @@ export default function CreateProposalContent() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                  Select Hub Centres *
+                  Select Hub Centres * ({formData.selectedHubCentres.length} selected)
                 </Label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
@@ -604,10 +602,28 @@ export default function CreateProposalContent() {
                       onChange={(e) => setHubCentreSearchTerm(e.target.value)}
                     />
                   </div>
-                  <Button variant="outline" className="px-4">
-                    Add
-                  </Button>
                 </div>
+                {/* Selected Centers Summary */}
+                {formData.selectedHubCentres.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.selectedHubCentres.map((centre) => (
+                      <Badge
+                        key={centre.id}
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
+                        {centre.name}
+                        <X
+                          className="h-3 w-3 cursor-pointer hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleHubCentre(centre);
+                          }}
+                        />
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Hub Centres Grid */}

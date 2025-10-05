@@ -33,7 +33,7 @@ router.get('/', [
   
   if (req.query.status) filter.status = req.query.status;
   if (req.query.leadId) filter.leadId = req.query.leadId;
-  if (req.query.centerId) filter.centerId = req.query.centerId;
+  if (req.query.centerId) filter.centerIds = req.query.centerId; // Filter proposals that include this center
 
   // For non-admin users, only show proposals they created
   if ((req.user as any).role === 'sales_executive') {
@@ -42,7 +42,7 @@ router.get('/', [
 
   const proposals = await Proposal.find(filter)
     .populate('leadId', 'name email company')
-    .populate('centerId', 'name address.city')
+    .populate('centerIds', 'name address.city')
     .populate('createdBy', 'name email')
     .sort({ createdAt: -1 });
 
@@ -89,7 +89,7 @@ router.get('/stats', [authenticate, requireSales], asyncHandler(async (req, res)
     // Recent proposals (last 5)
     Proposal.find(filter)
       .populate('leadId', 'name company')
-      .populate('centerId', 'name')
+      .populate('centerIds', 'name')
       .sort({ createdAt: -1 })
       .limit(5)
   ]);
@@ -135,7 +135,7 @@ router.get('/stats', [authenticate, requireSales], asyncHandler(async (req, res)
 router.get('/:id', [authenticate, requireSales], asyncHandler(async (req, res): Promise<void> => {
   const proposal = await Proposal.findById(req.params.id)
     .populate('leadId', 'name email company phone businessType businessSize seatingRequirements')
-    .populate('centerId')
+    .populate('centerIds')
     .populate('createdBy', 'name email');
   
   if (!proposal) {
@@ -168,7 +168,8 @@ router.post('/', [
   authenticate,
   requireSales,
   body('leadId').isMongoId().withMessage('Valid lead ID is required'),
-  body('centerId').isMongoId().withMessage('Valid center ID is required'),
+  body('centerIds').isArray({ min: 1 }).withMessage('At least one center ID is required'),
+  body('centerIds.*').isMongoId().withMessage('Valid center IDs are required'),
   body('title').trim().isLength({ min: 5, max: 200 }).withMessage('Title must be between 5 and 200 characters'),
   body('selectedSeating.hotDesks').optional().isInt({ min: 0 }).withMessage('Hot desks must be a non-negative integer'),
   body('selectedSeating.dedicatedDesks').optional().isInt({ min: 0 }).withMessage('Dedicated desks must be a non-negative integer'),
@@ -207,12 +208,21 @@ router.post('/', [
     return;
   }
 
-  // Verify center exists and is active
-  const center = await Center.findById(req.body.centerId);
-  if (!center || !center.isActive) {
+  // Verify all centers exist and are active
+  const centers = await Center.find({ _id: { $in: req.body.centerIds } });
+  if (centers.length !== req.body.centerIds.length) {
     res.status(404).json({ 
       success: false, 
-      message: 'Center not found or inactive' 
+      message: 'One or more centers not found' 
+    });
+    return;
+  }
+  
+  const inactiveCenters = centers.filter(center => !center.isActive);
+  if (inactiveCenters.length > 0) {
+    res.status(400).json({ 
+      success: false, 
+      message: `Following centers are inactive: ${inactiveCenters.map(c => c.name).join(', ')}` 
     });
     return;
   }
@@ -243,7 +253,7 @@ router.post('/', [
   // Transform the request data to match the Proposal schema
   const proposalData = {
     leadId: req.body.leadId,
-    centerId: req.body.centerId,
+    centerIds: req.body.centerIds,
     title: req.body.title,
     selectedSeating: req.body.selectedSeating,
     pricing: {
@@ -272,7 +282,7 @@ router.post('/', [
 
   await proposal.populate([
     { path: 'leadId', select: 'name email company' },
-    { path: 'centerId', select: 'name address.city' },
+    { path: 'centerIds', select: 'name address.city' },
     { path: 'createdBy', select: 'name email' }
   ]);
 
@@ -402,12 +412,12 @@ router.post('/generate-pdf', [
         businessType: req.body.client.address || 'Business',
         businessSize: 'Small'
       },
-      centerId: {
-        name: req.body.hubCentres[0].name,
+      centers: req.body.hubCentres.map((center: { name: string; address?: string; location?: string }) => ({
+        name: center.name,
         address: {
-          street: req.body.hubCentres[0].address || '',
-          city: req.body.hubCentres[0].location?.split(',')[0] || '',
-          state: req.body.hubCentres[0].location?.split(',')[1] || '',
+          street: center.address || '',
+          city: center.location?.split(',')[0] || '',
+          state: center.location?.split(',')[1] || '',
           zipCode: ''
         },
         contact: {
@@ -418,7 +428,7 @@ router.post('/generate-pdf', [
           weekdays: '9:00 AM - 8:00 PM',
           weekends: '10:00 AM - 6:00 PM'
         }
-      },
+      })),
       selectedSeating: {
         hotDesks: 0,
         dedicatedDesks: 0,
@@ -472,7 +482,7 @@ router.post('/generate-pdf', [
 router.post('/:id/send', [authenticate, requireSales], asyncHandler(async (req, res): Promise<void> => {
   const proposal = await Proposal.findById(req.params.id)
     .populate('leadId')
-    .populate('centerId')
+    .populate('centerIds')
     .populate('createdBy', 'name email');
   
   if (!proposal) {
