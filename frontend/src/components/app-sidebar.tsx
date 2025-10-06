@@ -47,6 +47,11 @@ const data = {
             icon: FileText,
         },
         {
+            title: "Centers",
+            url: "/centers",
+            icon: BarChart3,
+        },
+        {
             title: "Customers",
             url: "/customers",
             icon: UserCheck,
