@@ -69,7 +69,7 @@ export function CentersContent() {
       header: "Center Name",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <Building2 className="h-4 w-4 text-muted-foreground" />
+          {/* <Building2 className="h-4 w-4 text-muted-foreground" /> */}
           <span>{row.getValue("name")}</span>
         </div>
       ),
@@ -119,7 +119,7 @@ export function CentersContent() {
   ]
 
   const tableConfig: DataTableConfig<CenterTableItem> = {
-    enableSelection: true,
+    enableSelection: false,
     enableColumnVisibility: true,
     enableSorting: true,
     actions: [
